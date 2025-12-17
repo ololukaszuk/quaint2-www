@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  binance-realtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PORT:-8753}:8753"
+    environment:
+      - BINANCE_SYMBOL=${BINANCE_SYMBOL:-BTCUSDT}
+      - API_PORT=8753
+      - REFRESH_RATE=${REFRESH_RATE:-10}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8753/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+

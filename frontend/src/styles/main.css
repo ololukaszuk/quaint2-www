@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-dark-950 text-dark-100;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-dark-900;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-dark-600 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-dark-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-dark-900 rounded-xl border border-dark-700/50 overflow-hidden;
+  }
+  
+  .card-header {
+    @apply px-4 py-3 border-b border-dark-700/50 flex items-center justify-between;
+  }
+  
+  .card-title {
+    @apply text-sm font-semibold text-dark-200;
+  }
+  
+  .card-body {
+    @apply p-4;
+  }
+  
+  .btn {
+    @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900;
+  }
+  
+  .btn-primary {
+    @apply bg-brand-600 text-white hover:bg-brand-500 focus:ring-brand-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-dark-700 text-dark-200 hover:bg-dark-600 focus:ring-dark-500;
+  }
+  
+  .btn-ghost {
+    @apply text-dark-400 hover:text-dark-200 hover:bg-dark-800;
+  }
+  
+  .input {
+    @apply w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-dark-200;
+    @apply placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500;
+  }
+  
+  .select {
+    @apply appearance-none cursor-pointer;
+    @apply px-3 py-1.5 pr-8 bg-dark-800 border border-dark-700 rounded-lg text-dark-200;
+    @apply focus:outline-none focus:border-brand-500;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+  
+  .badge-green {
+    @apply bg-green-500/20 text-green-400;
+  }
+  
+  .badge-red {
+    @apply bg-red-500/20 text-red-400;
+  }
+  
+  .badge-yellow {
+    @apply bg-yellow-500/20 text-yellow-400;
+  }
+  
+  .badge-blue {
+    @apply bg-blue-500/20 text-blue-400;
+  }
+  
+  .badge-gray {
+    @apply bg-dark-700 text-dark-300;
+  }
+  
+  .price-up {
+    @apply text-green-400;
+  }
+  
+  .price-down {
+    @apply text-red-400;
+  }
+  
+  .price-neutral {
+    @apply text-dark-300;
+  }
+  
+  .mono {
+    @apply font-mono;
+  }
+  
+  .stat-value {
+    @apply text-2xl font-semibold mono tabular-nums;
+  }
+  
+  .stat-label {
+    @apply text-xs text-dark-400 uppercase tracking-wider;
+  }
+  
+  .divider {
+    @apply border-t border-dark-700/50;
+  }
+  
+  .tooltip {
+    @apply absolute z-50 px-2 py-1 text-xs bg-dark-800 text-dark-200 rounded shadow-lg border border-dark-700;
+    @apply pointer-events-none opacity-0 transition-opacity duration-150;
+  }
+  
+  .tooltip.show {
+    @apply opacity-100;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .animate-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .flash-up {
+    animation: flashUp 0.3s ease-out;
+  }
+  
+  .flash-down {
+    animation: flashDown 0.3s ease-out;
+  }
+  
+  @keyframes flashUp {
+    0% { background-color: rgba(34, 197, 94, 0.3); }
+    100% { background-color: transparent; }
+  }
+  
+  @keyframes flashDown {
+    0% { background-color: rgba(239, 68, 68, 0.3); }
+    100% { background-color: transparent; }
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
