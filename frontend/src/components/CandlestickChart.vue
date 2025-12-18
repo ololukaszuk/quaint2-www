@@ -39,11 +39,6 @@ const getTimezoneName = () => {
     return 'UTC'
   }
 }
-const convertUTCToLocalTime = (utcSeconds) => {
-  const offsetMinutes = new Date().getTimezoneOffset()
-  const offsetSeconds = offsetMinutes * 60
-  return utcSeconds - offsetSeconds
-}
 
 // Chart configuration with local timezone
 const getChartOptions = () => ({
@@ -99,7 +94,7 @@ function transformCandles(history) {
     })
     .map(k => ({
       // Convert from milliseconds to seconds (UTC timestamp)
-      time: convertUTCToLocalTime(Math.floor(k.time / 1000)),
+      time: Math.floor(k.time / 1000),
       open: Number(k.open),
       high: Number(k.high),
       low: Number(k.low),
@@ -122,7 +117,7 @@ function transformVolume(history) {
   return history
     .filter(k => k && k.time && !isNaN(k.volume))
     .map(k => ({
-      time: convertUTCToLocalTime(Math.floor(k.time / 1000)),
+      time: Math.floor(k.time / 1000),
       value: Number(k.volume),
       color: k.close >= k.open ? '#22c55e80' : '#ef444480'
     }))
@@ -262,7 +257,7 @@ watch(
   (newKline) => {
     if (newKline && candleSeries && newKline.time) {
       const currentCandle = {
-        time: convertUTCToLocalTime(Math.floor(newKline.time / 1000)),
+        time: Math.floor(newKline.time / 1000),
         open: Number(newKline.open),
         high: Number(newKline.high),
         low: Number(newKline.low),
