@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useMarketStore } from '../store/market'
 import { formatPrice, formatPercent, formatTime } from '../utils/format'
 
@@ -8,6 +8,7 @@ const props = defineProps({
 })
 
 const store = useMarketStore()
+const toggleHistory = ref(false)
 
 const analysis = computed(() => store.marketAnalysis)
 const signals = computed(() => store.marketSignals)
@@ -47,7 +48,7 @@ const formatTimeAgo = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full overflow-y-auto overflow-x-hidden max-h-[calc(100vh-300px)]">
     <!-- Current Signal Card -->
     <div class="p-4 border-b border-dark-700/50" :class="{ 'p-3': mobile }">
       <div v-if="analysis" class="space-y-3">
@@ -141,16 +142,24 @@ const formatTimeAgo = (timestamp) => {
       </div>
     </div>
     
-    <!-- Signal History -->
-    <div class="flex-1 overflow-auto">
-      <div class="px-4 py-2 text-xs text-dark-500 font-medium bg-dark-900/50 sticky top-0">
-        Signal History
+    <!-- Signal History (Collapsible) -->
+    <div class="cursor-pointer border-t border-dark-700/50" @click="toggleHistory = !toggleHistory">
+      <div class="px-4 py-3 flex items-center justify-between bg-dark-900/50 hover:bg-dark-900/70 transition-colors" :class="{ 'px-3 py-2': mobile }">
+        <div class="text-xs text-dark-500 font-medium">Signal History</div>
+        <svg 
+          class="w-4 h-4 text-dark-400 transition-transform"
+          :class="{ 'rotate-180': toggleHistory }"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
       </div>
-      <div class="divide-y divide-dark-800/50">
+      
+      <div v-if="toggleHistory" class="divide-y divide-dark-800/50 max-h-[400px] overflow-y-auto">
         <div 
           v-for="signal in signals.slice(0, 10)" 
           :key="signal.id"
-          class="px-4 py-3 hover:bg-dark-800/30 transition-colors"
+          class="px-4 py-3 hover:bg-dark-800/30 transition-colors" :class="{ 'px-3': mobile }"
         >
           <div class="flex items-center justify-between mb-1">
             <span 

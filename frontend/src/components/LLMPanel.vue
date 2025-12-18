@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useMarketStore } from '../store/market'
 import { formatPrice } from '../utils/format'
 
@@ -8,6 +8,7 @@ const props = defineProps({
 })
 
 const store = useMarketStore()
+const showWarnings = ref(false)
 
 const analysis = computed(() => store.llmAnalysis)
 
@@ -43,7 +44,7 @@ const formatTimeAgo = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full overflow-auto">
+  <div class="h-full overflow-y-auto overflow-x-hidden max-h-[calc(100vh-300px)]">
     <div v-if="analysis" class="p-4 space-y-4" :class="{ 'p-3 space-y-3': mobile }">
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -203,16 +204,26 @@ const formatTimeAgo = (timestamp) => {
         </div>
       </div>
       
-      <!-- Warnings at Analysis -->
-      <div v-if="analysis.warnings_at_analysis?.length" class="space-y-2">
-        <h4 class="text-xs text-dark-500">Warnings at Analysis</h4>
-        <div class="space-y-1">
+      <!-- Warnings at Analysis (Collapsible) -->
+      <div v-if="analysis.warnings_at_analysis?.length" class="cursor-pointer border border-yellow-500/30 rounded-lg bg-yellow-500/5" @click="showWarnings = !showWarnings">
+        <div class="px-3 py-2 flex items-center justify-between hover:bg-yellow-500/10 transition-colors" :class="{ 'px-2 py-1.5': mobile }">
+          <h4 class="text-xs font-medium text-yellow-400">Warnings at Analysis</h4>
+          <svg 
+            class="w-4 h-4 text-yellow-400 transition-transform"
+            :class="{ 'rotate-180': showWarnings }"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+        
+        <div v-if="showWarnings" class="space-y-1 px-3 py-2 border-t border-yellow-500/20" :class="{ 'px-2 py-1.5': mobile }">
           <div 
             v-for="(warning, i) in analysis.warnings_at_analysis"
             :key="i"
             class="p-2 bg-yellow-500/10 rounded text-xs"
           >
-            <span class="text-yellow-400">{{ warning.type }}</span>
+            <span class="text-yellow-400 font-medium">{{ warning.type }}</span>
             <span class="text-dark-400 ml-2">{{ warning.message }}</span>
           </div>
         </div>

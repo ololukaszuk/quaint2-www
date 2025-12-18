@@ -49,58 +49,72 @@ const severityClass = (severity) => {
 </script>
 
 <template>
-  <div class="h-full overflow-auto">
+  <div class="h-full overflow-y-auto overflow-x-hidden max-h-[calc(100vh-300px)]">
     <div v-if="analysis" class="divide-y divide-dark-700/50">
-      <!-- SMC Overview -->
-      <div class="p-4" :class="{ 'p-3': mobile }">
-        <div class="flex items-center justify-between mb-3">
+      
+      <!-- SMC Section (Collapsible) -->
+      <div class="cursor-pointer" @click="toggleSection('smc')">
+        <div class="p-4 flex items-center justify-between" :class="{ 'p-3': mobile }">
           <h4 class="text-sm font-medium text-dark-200">Smart Money Concepts</h4>
-          <span 
-            class="px-2 py-1 text-xs rounded"
-            :class="biasClass(analysis.smc_bias)"
+          <svg 
+            class="w-4 h-4 text-dark-400 transition-transform"
+            :class="{ 'rotate-180': expandedSection === 'smc' }"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
-            {{ analysis.smc_bias || 'NEUTRAL' }}
-          </span>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
         </div>
         
-        <div class="grid grid-cols-2 gap-3">
-          <div class="p-2 bg-dark-800/50 rounded">
-            <div class="text-xs text-dark-500">Price Zone</div>
-            <div class="font-medium" :class="zoneClass(analysis.price_zone)">
-              {{ analysis.price_zone || '-' }}
-            </div>
-          </div>
-          <div class="p-2 bg-dark-800/50 rounded">
-            <div class="text-xs text-dark-500">Equilibrium</div>
-            <div class="font-mono text-dark-300 text-sm">
-              ${{ formatPrice(analysis.equilibrium_price) }}
-            </div>
-          </div>
-        </div>
-        
-        <!-- Order Blocks -->
-        <div v-if="analysis.smc_order_blocks?.length" class="mt-3">
-          <div class="text-xs text-dark-500 mb-2">Order Blocks</div>
-          <div class="space-y-1">
-            <div 
-              v-for="(ob, i) in analysis.smc_order_blocks.slice(0, 3)"
-              :key="i"
-              class="flex items-center justify-between text-xs p-2 rounded"
-              :class="ob.type === 'bullish' ? 'bg-green-500/10' : 'bg-red-500/10'"
+        <!-- SMC Content (only shows if expanded) -->
+        <div v-if="expandedSection === 'smc'" class="p-4 border-t border-dark-700/50" :class="{ 'p-3': mobile }">
+          <div class="flex items-center justify-between mb-3">
+            <span 
+              class="px-2 py-1 text-xs rounded"
+              :class="biasClass(analysis.smc_bias)"
             >
-              <span :class="ob.type === 'bullish' ? 'text-green-400' : 'text-red-400'">
-                {{ ob.type === 'bullish' ? '🟢' : '🔴' }} {{ ob.type }}
-              </span>
-              <span class="font-mono text-dark-300">
-                ${{ formatPrice(ob.low) }} - ${{ formatPrice(ob.high) }}
-              </span>
-              <span class="text-dark-500">{{ ob.distance_pct?.toFixed(1) }}%</span>
+              {{ analysis.smc_bias || 'NEUTRAL' }}
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div class="p-2 bg-dark-800/50 rounded">
+              <div class="text-xs text-dark-500">Price Zone</div>
+              <div class="font-medium" :class="zoneClass(analysis.price_zone)">
+                {{ analysis.price_zone || '-' }}
+              </div>
+            </div>
+            <div class="p-2 bg-dark-800/50 rounded">
+              <div class="text-xs text-dark-500">Equilibrium</div>
+              <div class="font-mono text-dark-300 text-sm">
+                ${{ formatPrice(analysis.equilibrium_price) }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Order Blocks -->
+          <div v-if="analysis.smc_order_blocks?.length">
+            <div class="text-xs text-dark-500 mb-2">Order Blocks</div>
+            <div class="space-y-1">
+              <div 
+                v-for="(ob, i) in analysis.smc_order_blocks.slice(0, 3)"
+                :key="i"
+                class="flex items-center justify-between text-xs p-2 rounded"
+                :class="ob.type === 'bullish' ? 'bg-green-500/10' : 'bg-red-500/10'"
+              >
+                <span :class="ob.type === 'bullish' ? 'text-green-400' : 'text-red-400'">
+                  {{ ob.type === 'bullish' ? '🟢' : '🔴' }} {{ ob.type }}
+                </span>
+                <span class="font-mono text-dark-300">
+                  ${{ formatPrice(ob.low) }} - ${{ formatPrice(ob.high) }}
+                </span>
+                <span class="text-dark-500">{{ ob.distance_pct?.toFixed(1) }}%</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Trends Section -->
+      <!-- TRENDS Section - SEPARATE (Collapsible) -->
       <div class="cursor-pointer" @click="toggleSection('trends')">
         <div class="p-4 flex items-center justify-between" :class="{ 'p-3': mobile }">
           <h4 class="text-sm font-medium text-dark-200">Multi-Timeframe Trends</h4>
@@ -310,54 +324,77 @@ const severityClass = (severity) => {
         </div>
       </div>
       
-      <!-- Warnings Section -->
-      <div v-if="analysis.warnings?.length" class="p-4" :class="{ 'p-3': mobile }">
-        <h4 class="text-sm font-medium text-dark-200 mb-3">⚠️ Warnings</h4>
-        <div class="space-y-2">
-          <div 
-            v-for="(warning, i) in analysis.warnings"
-            :key="`warning-${i}`"
-            class="p-2 rounded border text-sm"
-            :class="severityClass(warning.severity)"
+      <!-- Warnings Section (Collapsible) -->
+      <div class="cursor-pointer" @click="toggleSection('warnings')">
+        <div class="p-4 flex items-center justify-between" :class="{ 'p-3': mobile }">
+          <h4 class="text-sm font-medium text-dark-200">⚠️ Warnings</h4>
+          <svg 
+            class="w-4 h-4 text-dark-400 transition-transform"
+            :class="{ 'rotate-180': expandedSection === 'warnings' }"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
-            <div class="flex items-center justify-between">
-              <span class="font-medium">{{ warning.type?.replace(/_/g, ' ') }}</span>
-              <span class="text-xs opacity-70">{{ warning.severity }}</span>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+        
+        <div v-if="expandedSection === 'warnings' && analysis.warnings?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+          <div class="space-y-2">
+            <div 
+              v-for="(warning, i) in analysis.warnings"
+              :key="`warning-${i}`"
+              class="p-2 rounded border text-sm"
+              :class="severityClass(warning.severity)"
+            >
+              <div class="flex items-center justify-between">
+                <span class="font-medium">{{ warning.type?.replace(/_/g, ' ') }}</span>
+                <span class="text-xs opacity-70">{{ warning.severity }}</span>
+              </div>
+              <div class="text-xs mt-1 opacity-80">{{ warning.message }}</div>
             </div>
-            <div class="text-xs mt-1 opacity-80">{{ warning.message }}</div>
           </div>
         </div>
       </div>
       
-      <!-- Signal Factors -->
-      <div v-if="analysis.signal_factors?.length" class="p-4 border-t border-dark-700/50" :class="{ 'p-3': mobile }">
-        <h4 class="text-sm font-medium text-dark-200 mb-3">Signal Factors</h4>
-        <div class="space-y-1">
-          <div 
-            v-for="(factor, i) in analysis.signal_factors"
-            :key="`factor-${i}`"
-            class="flex items-center justify-between text-xs p-2 rounded"
-            :class="{
-              'bg-green-500/10': factor.direction === 'BULLISH' || factor.weight > 0,
-              'bg-red-500/10': factor.direction === 'BEARISH' || factor.weight < 0,
-              'bg-dark-800/50': !factor.direction && factor.weight === 0
-            }"
+      <!-- Signal Factors Section (Collapsible) -->
+      <div class="cursor-pointer" @click="toggleSection('factors')">
+        <div class="p-4 flex items-center justify-between border-t border-dark-700/50" :class="{ 'p-3': mobile }">
+          <h4 class="text-sm font-medium text-dark-200">Signal Factors</h4>
+          <svg 
+            class="w-4 h-4 text-dark-400 transition-transform"
+            :class="{ 'rotate-180': expandedSection === 'factors' }"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
-            <span class="text-dark-300">{{ factor.description }}</span>
-            <span 
-              class="font-mono"
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+        
+        <div v-if="expandedSection === 'factors' && analysis.signal_factors?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+          <div class="space-y-1">
+            <div 
+              v-for="(factor, i) in analysis.signal_factors"
+              :key="`factor-${i}`"
+              class="flex items-center justify-between text-xs p-2 rounded"
               :class="{
-                'text-green-400': factor.weight > 0,
-                'text-red-400': factor.weight < 0,
-                'text-dark-400': factor.weight === 0
+                'bg-green-500/10': factor.direction === 'BULLISH' || factor.weight > 0,
+                'bg-red-500/10': factor.direction === 'BEARISH' || factor.weight < 0,
+                'bg-dark-800/50': !factor.direction && factor.weight === 0
               }"
             >
-              {{ factor.weight > 0 ? '+' : '' }}{{ factor.weight }}
-            </span>
+              <span class="text-dark-300">{{ factor.description }}</span>
+              <span 
+                class="font-mono"
+                :class="{
+                  'text-green-400': factor.weight > 0,
+                  'text-red-400': factor.weight < 0,
+                  'text-dark-400': factor.weight === 0
+                }"
+              >
+                {{ factor.weight > 0 ? '+' : '' }}{{ factor.weight }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     
     <!-- No Data State -->
     <div v-else class="flex items-center justify-center h-full">
