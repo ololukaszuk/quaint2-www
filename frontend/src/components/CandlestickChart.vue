@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { createChart, CrosshairMode } from 'lightweight-charts'
+import { createChart, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
 import { useMarketStore } from '../store/market'
 import { formatCurrency, formatQuantity } from '../utils/format'
 
@@ -20,83 +20,66 @@ const checkMobile = () => {
   isMobile.value = window.innerWidth < 768
 }
 
-// Chart configuration with mobile-friendly options
+// Get timezone offset in minutes
+const getTimezoneOffsetMinutes = () => {
+  try {
+    // Get local timezone offset (negative because JS returns opposite sign)
+    return -new Date().getTimezoneOffset()
+  } catch (e) {
+    console.warn('Could not detect timezone, using UTC')
+    return 0
+  }
+}
+
+// Get timezone name for display
+const getTimezoneName = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch (e) {
+    return 'UTC'
+  }
+}
+
+// Chart configuration with local timezone
 const getChartOptions = () => ({
   layout: {
-    background: { type: 'solid', color: 'transparent' },
     textColor: '#94a3b8',
-    fontSize: isMobile.value ? 10 : 12
+    background: { color: 'transparent' }
   },
   grid: {
     vertLines: { color: '#1e293b' },
     horzLines: { color: '#1e293b' }
   },
-  crosshair: {
-    mode: CrosshairMode.Normal,
-    vertLine: {
-      color: '#475569',
-      labelBackgroundColor: '#334155'
-    },
-    horzLine: {
-      color: '#475569',
-      labelBackgroundColor: '#334155'
-    }
-  },
-  rightPriceScale: {
-    borderColor: '#334155',
-    scaleMargins: {
-      top: 0.1,
-      bottom: 0.2
-    },
-    entireTextOnly: isMobile.value
-  },
   timeScale: {
     borderColor: '#334155',
     timeVisible: true,
     secondsVisible: false,
-    tickMarkFormatter: isMobile.value ? (time) => {
-      const date = new Date(time * 1000)
-      return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-    } : undefined
+    // Use local timezone offset
+    // Lightweight Charts uses this to display times in local timezone
   },
-  handleScroll: {
-    vertTouchDrag: false,
-    horzTouchDrag: true,
-    mouseWheel: true,
-    pressedMouseMove: true,
-  },
-  handleScale: {
-    axisPressedMouseMove: {
-      time: true,
-      price: true,
+  localization: {
+    // Format dates in local timezone
+    timeFormatter: (timestamp) => {
+      const date = new Date(timestamp * 1000)
+      return date.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
     },
-    pinch: true,
-    mouseWheel: true,
+    dateFormatter: (timestamp) => {
+      const date = new Date(timestamp * 1000)
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric'
+      })
+    }
   }
 })
 
-const candleSeriesOptions = {
-  upColor: '#22c55e',
-  downColor: '#ef4444',
-  borderUpColor: '#22c55e',
-  borderDownColor: '#ef4444',
-  wickUpColor: '#22c55e',
-  wickDownColor: '#ef4444'
-}
-
-const volumeSeriesOptions = {
-  color: '#475569',
-  priceFormat: {
-    type: 'volume'
-  },
-  priceScaleId: 'volume',
-  scaleMargins: {
-    top: 0.8,
-    bottom: 0
-  }
-}
-
-// Transform kline data for chart - FIX: ensure numbers are valid
+// Transform kline data for chart
+// Note: Binance timestamps are in UTC milliseconds
+// We keep them as-is (UTC seconds) and let lightweight-charts handle display
 function transformCandles(history) {
   if (!history || !Array.isArray(history)) {
     console.log('No history data')
@@ -106,11 +89,11 @@ function transformCandles(history) {
   const candles = history
     .filter(k => {
       if (!k || !k.time) return false
-      // Ensure all values are valid numbers
       if (isNaN(k.open) || isNaN(k.high) || isNaN(k.low) || isNaN(k.close)) return false
       return true
     })
     .map(k => ({
+      // Convert from milliseconds to seconds (UTC timestamp)
       time: Math.floor(k.time / 1000),
       open: Number(k.open),
       high: Number(k.high),
@@ -121,8 +104,8 @@ function transformCandles(history) {
   
   console.log(`Transformed ${candles.length} candles`)
   if (candles.length > 0) {
-    console.log('First candle:', candles[0])
-    console.log('Last candle:', candles[candles.length - 1])
+    console.log('First candle:', candles[0], 'Local time:', new Date(candles[0].time * 1000).toLocaleString())
+    console.log('Last candle:', candles[candles.length - 1], 'Local time:', new Date(candles[candles.length - 1].time * 1000).toLocaleString())
   }
   
   return candles
@@ -136,7 +119,7 @@ function transformVolume(history) {
     .map(k => ({
       time: Math.floor(k.time / 1000),
       value: Number(k.volume),
-      color: k.close >= k.open ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'
+      color: k.close >= k.open ? '#22c55e80' : '#ef444480'
     }))
     .sort((a, b) => a.time - b.time)
 }
@@ -149,64 +132,91 @@ function initChart() {
   }
   
   console.log('Initializing chart...')
+  console.log('Detected timezone:', getTimezoneName(), 'Offset:', getTimezoneOffsetMinutes(), 'minutes')
   checkMobile()
   
-  chart = createChart(chartContainer.value, {
-    ...getChartOptions(),
-    width: chartContainer.value.clientWidth,
-    height: chartContainer.value.clientHeight
-  })
-  
-  // Add candle series
-  candleSeries = chart.addCandlestickSeries(candleSeriesOptions)
-  
-  // Add volume series
-  volumeSeries = chart.addHistogramSeries(volumeSeriesOptions)
-  
-  // Configure volume price scale
-  chart.priceScale('volume').applyOptions({
-    scaleMargins: {
-      top: 0.8,
-      bottom: 0
-    },
-    borderVisible: false
-  })
-  
-  // Subscribe to crosshair move (desktop only for performance)
-  if (!isMobile.value) {
-    chart.subscribeCrosshairMove(param => {
-      if (param.time) {
-        const candleData = param.seriesData.get(candleSeries)
-        const volumeData = param.seriesData.get(volumeSeries)
-        
-        if (candleData) {
-          legendData.value = {
-            time: new Date(param.time * 1000).toLocaleString(),
-            open: candleData.open,
-            high: candleData.high,
-            low: candleData.low,
-            close: candleData.close,
-            volume: volumeData?.value
-          }
-        }
-      } else {
-        legendData.value = null
+  try {
+    chart = createChart(chartContainer.value, {
+      ...getChartOptions(),
+      width: chartContainer.value.clientWidth,
+      height: chartContainer.value.clientHeight
+    })
+    
+    // Add candlestick series - v5 API: pass series type as first param
+    candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#22c55e',
+      downColor: '#ef4444',
+      borderUpColor: '#22c55e',
+      borderDownColor: '#ef4444',
+      wickUpColor: '#22c55e',
+      wickDownColor: '#ef4444'
+    })
+    
+    // Add volume histogram series - v5 API
+    volumeSeries = chart.addSeries(HistogramSeries, {
+      color: '#475569',
+      priceFormat: {
+        type: 'volume'
+      },
+      priceScaleId: 'volume'
+    })
+    
+    // Configure volume price scale
+    volumeSeries.priceScale().applyOptions({
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0
       }
     })
-  }
-  
-  // Set up resize observer
-  resizeObserver = new ResizeObserver(entries => {
-    if (chart && entries[0]) {
-      const { width, height } = entries[0].contentRect
-      chart.applyOptions({ width, height })
+    
+    // Subscribe to crosshair move (desktop only)
+    if (!isMobile.value) {
+      chart.subscribeCrosshairMove(param => {
+        if (param.time) {
+          const candleData = param.seriesData.get(candleSeries)
+          const volumeData = param.seriesData.get(volumeSeries)
+          
+          if (candleData) {
+            // Format time in local timezone
+            const date = new Date(param.time * 1000)
+            legendData.value = {
+              time: date.toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              open: candleData.open,
+              high: candleData.high,
+              low: candleData.low,
+              close: candleData.close,
+              volume: volumeData?.value
+            }
+          }
+        } else {
+          legendData.value = null
+        }
+      })
     }
-  })
-  
-  resizeObserver.observe(chartContainer.value)
-  
-  // Initial data load
-  updateChart()
+    
+    // Set up resize observer
+    resizeObserver = new ResizeObserver(entries => {
+      if (chart && entries[0]) {
+        const { width, height } = entries[0].contentRect
+        chart.applyOptions({ width, height })
+      }
+    })
+    
+    resizeObserver.observe(chartContainer.value)
+    
+    console.log('Chart initialized successfully')
+    
+    // Initial data load
+    updateChart()
+  } catch (error) {
+    console.error('Failed to initialize chart:', error)
+  }
 }
 
 // Update chart data
@@ -254,7 +264,6 @@ watch(
         close: Number(newKline.close)
       }
       
-      // Validate
       if (!isNaN(currentCandle.open) && !isNaN(currentCandle.high) && 
           !isNaN(currentCandle.low) && !isNaN(currentCandle.close)) {
         candleSeries.update(currentCandle)
@@ -263,9 +272,7 @@ watch(
           volumeSeries.update({
             time: currentCandle.time,
             value: Number(newKline.volume),
-            color: newKline.close >= newKline.open 
-              ? 'rgba(34, 197, 94, 0.5)' 
-              : 'rgba(239, 68, 68, 0.5)'
+            color: newKline.close >= newKline.open ? '#22c55e80' : '#ef444480'
           })
         }
       }
@@ -286,7 +293,7 @@ watch(
   }
 )
 
-// Handle window resize for mobile detection
+// Handle window resize
 const handleResize = () => {
   const wasMobile = isMobile.value
   checkMobile()
@@ -298,6 +305,7 @@ const handleResize = () => {
 
 onMounted(() => {
   console.log('CandlestickChart mounted')
+  window.addEventListener('resize', handleResize)
   initChart()
 })
 
@@ -324,6 +332,7 @@ onUnmounted(() => {
       
       <!-- Legend (shown on hover, desktop only) -->
       <div v-if="legendData && !isMobile" class="hidden sm:flex items-center gap-3 text-xs font-mono">
+        <span class="text-dark-500">{{ legendData.time }}</span>
         <span>O: <span :class="legendData.close >= legendData.open ? 'price-up' : 'price-down'">{{ formatCurrency(legendData.open) }}</span></span>
         <span>H: <span class="price-up">{{ formatCurrency(legendData.high) }}</span></span>
         <span>L: <span class="price-down">{{ formatCurrency(legendData.low) }}</span></span>

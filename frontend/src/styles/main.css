@@ -172,12 +172,8 @@
     @apply text-dark-300;
   }
   
-  .mono {
-    @apply font-mono;
-  }
-  
   .stat-value {
-    @apply text-2xl font-semibold mono tabular-nums;
+    @apply text-2xl font-semibold font-mono tabular-nums;
   }
   
   .stat-label {

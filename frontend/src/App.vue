@@ -30,6 +30,21 @@ const isMobile = computed(() => {
   if (typeof window === 'undefined') return false
   return window.innerWidth < 1024
 })
+
+// Computed volume display values
+const volumeLabel = computed(() => {
+  const unit = store.displayUnitVolume === 'BTC' ? 'BTC' : '$'
+  return `Volume (${store.interval})`
+})
+
+const volumeValue = computed(() => store.intervalVolume)
+const volumePrefix = computed(() => store.displayUnitVolume === 'USD' ? '$' : '')
+const volumeSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC' : '')
+
+const volume24hLabel = computed(() => '24h Volume')
+const volume24hValue = computed(() => store.volume24h)
+const volume24hPrefix = computed(() => store.displayUnitVolume === 'USD' ? '$' : '')
+const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC' : '')
 </script>
 
 <template>
@@ -59,18 +74,30 @@ const isMobile = computed(() => {
                 format="percent"
                 :indicator="store.buyRatio > 55 ? 'up' : store.buyRatio < 45 ? 'down' : 'neutral'"
               />
-              <PriceCard
-                :label="`Volume (${store.interval})`"
-                :value="store.kline?.volume"
-                format="compact"
-                suffix=" BTC"
-              />
-              <PriceCard
-                label="24h Volume"
-                :value="store.kline?.quote_volume"
-                format="compact"
-                prefix="$"
-              />
+              <!-- Volume card with toggle -->
+              <div class="card p-3 cursor-pointer hover:bg-dark-800/50 transition-colors" @click="store.toggleVolumeUnit">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-dark-500 font-medium text-xs">{{ volumeLabel }}</span>
+                  <span class="text-xs text-dark-600 hover:text-dark-400">⇄ {{ store.displayUnitVolume }}</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <span class="font-mono font-bold tabular-nums text-xl text-dark-100">
+                    {{ volumePrefix }}{{ store.intervalVolume?.toLocaleString('en-US', { maximumFractionDigits: store.displayUnitVolume === 'BTC' ? 2 : 0 }) }}{{ volumeSuffix }}
+                  </span>
+                </div>
+              </div>
+              <!-- 24h Volume card with toggle (uses same unit as interval volume) -->
+              <div class="card p-3 cursor-pointer hover:bg-dark-800/50 transition-colors" @click="store.toggleVolumeUnit">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-dark-500 font-medium text-xs">{{ volume24hLabel }}</span>
+                  <span class="text-xs text-dark-600 hover:text-dark-400">⇄ {{ store.displayUnitVolume }}</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <span class="font-mono font-bold tabular-nums text-xl text-dark-100">
+                    {{ volume24hPrefix }}{{ store.volume24h?.toLocaleString('en-US', { maximumFractionDigits: store.displayUnitVolume === 'BTC' ? 2 : 0, notation: 'compact' }) }}{{ volume24hSuffix }}
+                  </span>
+                </div>
+              </div>
             </div>
             
             <!-- Chart -->
@@ -227,13 +254,16 @@ const isMobile = computed(() => {
                 format="currency"
                 size="compact"
               />
-              <PriceCard
-                label="Volume"
-                :value="store.kline?.quote_volume"
-                format="compact"
-                prefix="$"
-                size="compact"
-              />
+              <!-- Mobile 24h volume with tap to toggle -->
+              <div class="card p-2 cursor-pointer" @click="store.toggleVolumeUnit">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-dark-500 font-medium text-xs">24h Vol</span>
+                  <span class="text-xs text-dark-600">{{ store.displayUnitVolume }}</span>
+                </div>
+                <span class="font-mono font-bold tabular-nums text-lg text-dark-100">
+                  {{ volume24hPrefix }}{{ store.volume24h?.toLocaleString('en-US', { maximumFractionDigits: 0, notation: 'compact' }) }}{{ volume24hSuffix }}
+                </span>
+              </div>
             </div>
             
             <!-- Chart -->

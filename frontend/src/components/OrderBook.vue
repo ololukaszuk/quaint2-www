@@ -10,17 +10,19 @@ const props = defineProps({
 const store = useMarketStore()
 const asksContainer = ref(null)
 const bidsContainer = ref(null)
+const showFilters = ref(false)
+const localMinQty = ref(store.orderbookMinQtyBTC)
 
 const displayDepth = computed(() => props.compact ? 8 : store.orderbookDepth)
 
+// Use filtered orderbook from store
 const bids = computed(() => {
-  const data = store.orderbook?.bids || []
+  const data = store.filteredOrderbook?.bids || []
   return data.slice(0, displayDepth.value)
 })
 
-// Asks: Keep lowest price at bottom (ascending order, then reverse for display)
 const asks = computed(() => {
-  const data = store.orderbook?.asks || []
+  const data = store.filteredOrderbook?.asks || []
   return data.slice(0, displayDepth.value).reverse()
 })
 
@@ -38,6 +40,28 @@ function getBarWidth(quantity) {
   return (quantity / maxVolume.value) * 100
 }
 
+// Display value based on unit toggle
+const getDisplayQty = (level) => {
+  if (store.displayUnitOrderBook === 'USD') {
+    return level.price * level.quantity
+  }
+  return level.quantity
+}
+
+const getDisplayQtyFormatted = (level) => {
+  if (store.displayUnitOrderBook === 'USD') {
+    return '$' + formatPrice(level.price * level.quantity)
+  }
+  return formatQuantity(level.quantity)
+}
+
+const getDisplayTotal = (level) => {
+  if (store.displayUnitOrderBook === 'USD') {
+    return '$' + formatPrice(level.price * level.quantity)
+  }
+  return formatQuantity(level.price * level.quantity)
+}
+
 function scrollAsksToBottom() {
   if (asksContainer.value) {
     asksContainer.value.scrollTop = asksContainer.value.scrollHeight
@@ -52,7 +76,6 @@ function scrollBidsToTop() {
 
 let currentSymbol = ''
 
-// Watch for orderbook updates and maintain scroll position
 watch(
   () => [asks.value.length, bids.value.length, store.symbol],
   async ([askLen, bidLen, sym]) => {
@@ -61,13 +84,11 @@ watch(
       currentSymbol = sym
     }
     
-    // Always scroll asks to bottom to keep lowest ask near spread
     if (askLen > 0) {
       await nextTick()
       scrollAsksToBottom()
     }
     
-    // Scroll bids to top on symbol change
     if (bidLen > 0 && symbolChanged) {
       await nextTick()
       scrollBidsToTop()
@@ -82,14 +103,49 @@ onMounted(() => {
     scrollBidsToTop()
   }, 100)
 })
+
+// Apply filter
+const applyFilter = () => {
+  store.setOrderbookMinQty(localMinQty.value)
+  showFilters.value = false
+}
+
+// Clear filter
+const clearFilter = () => {
+  localMinQty.value = 0
+  store.setOrderbookMinQty(0)
+}
+
+// Quick filter presets
+const applyQuickFilter = (btc) => {
+  localMinQty.value = btc
+  store.setOrderbookMinQty(btc)
+}
 </script>
 
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
     <div class="card-header flex-shrink-0" :class="{ 'py-2 px-3': compact }">
-      <h3 class="card-title" :class="{ 'text-xs': compact }">📈 Order Book</h3>
       <div class="flex items-center gap-2">
+        <h3 class="card-title" :class="{ 'text-xs': compact }">📈 Order Book</h3>
+        <!-- Unit toggle -->
+        <button 
+          @click="store.toggleOrderBookUnit"
+          class="text-xs px-1.5 py-0.5 rounded bg-dark-800 text-dark-400 hover:text-dark-200 transition-colors"
+          :title="`Show in ${store.displayUnitOrderBook === 'BTC' ? 'USD' : 'BTC'}`"
+        >
+          {{ store.displayUnitOrderBook }}
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Filter indicator -->
+        <span 
+          v-if="store.orderbookMinQtyBTC > 0"
+          class="text-xs px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400"
+        >
+          ≥{{ store.orderbookMinQtyBTC }} BTC
+        </span>
         <span 
           :class="[
             'badge', 
@@ -100,6 +156,63 @@ onMounted(() => {
         >
           {{ imbalanceInfo.emoji }} {{ store.orderbookImbalance.toFixed(1) }}%
         </span>
+        <!-- Filter toggle -->
+        <button 
+          @click="showFilters = !showFilters"
+          class="p-1 rounded hover:bg-dark-800 transition-colors"
+          :class="{ 'text-brand-400': showFilters || store.orderbookMinQtyBTC > 0 }"
+          title="Filter orderbook"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Filter Panel -->
+    <div 
+      v-if="showFilters"
+      class="px-3 py-2 bg-dark-800/50 border-b border-dark-700/50 flex-shrink-0"
+    >
+      <div class="text-xs text-dark-500 mb-2">Min Quantity (BTC)</div>
+      <div class="flex items-center gap-2 mb-2">
+        <input 
+          v-model.number="localMinQty"
+          type="number"
+          step="0.01"
+          min="0"
+          class="input text-xs py-1 px-2 w-24"
+          placeholder="0.00"
+        />
+        <button 
+          @click="applyFilter"
+          class="px-2 py-1 text-xs bg-brand-600 text-white rounded hover:bg-brand-500 transition-colors"
+        >
+          Apply
+        </button>
+        <button 
+          v-if="store.orderbookMinQtyBTC > 0"
+          @click="clearFilter"
+          class="px-2 py-1 text-xs bg-dark-700 text-dark-300 rounded hover:bg-dark-600 transition-colors"
+        >
+          Clear
+        </button>
+      </div>
+      <!-- Quick presets -->
+      <div class="flex items-center gap-1">
+        <span class="text-xs text-dark-500">Quick:</span>
+        <button 
+          v-for="preset in [0.5, 1, 2, 5, 10]"
+          :key="preset"
+          @click="applyQuickFilter(preset)"
+          class="px-1.5 py-0.5 text-xs rounded transition-colors"
+          :class="store.orderbookMinQtyBTC === preset 
+            ? 'bg-brand-600 text-white' 
+            : 'bg-dark-700 text-dark-400 hover:bg-dark-600'"
+        >
+          {{ preset }}
+        </button>
       </div>
     </div>
     
@@ -109,8 +222,8 @@ onMounted(() => {
       :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
     >
       <span class="text-left">Price</span>
-      <span class="text-right">Qty</span>
-      <span v-if="!compact" class="text-right">Total</span>
+      <span class="text-right">Qty ({{ store.displayUnitOrderBook }})</span>
+      <span v-if="!compact" class="text-right">Total ({{ store.displayUnitOrderBook === 'BTC' ? 'USD' : 'USD' }})</span>
     </div>
     
     <!-- Two-panel layout -->
@@ -134,10 +247,16 @@ onMounted(() => {
           
           <!-- Content -->
           <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
-          <span class="relative text-right text-dark-300 truncate">{{ formatQuantity(ask.quantity) }}</span>
+          <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
           <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-            {{ formatQuantity(ask.price * ask.quantity) }}
+            {{ getDisplayTotal(ask) }}
           </span>
+        </div>
+        
+        <!-- Empty asks -->
+        <div v-if="asks.length === 0" class="p-2 text-center text-dark-600 text-xs">
+          <template v-if="store.orderbookMinQtyBTC > 0">No asks ≥ {{ store.orderbookMinQtyBTC }} BTC</template>
+          <template v-else>Loading...</template>
         </div>
       </div>
       
@@ -166,10 +285,16 @@ onMounted(() => {
           
           <!-- Content -->
           <span class="relative text-green-400 truncate">{{ formatPrice(bid.price) }}</span>
-          <span class="relative text-right text-dark-300 truncate">{{ formatQuantity(bid.quantity) }}</span>
+          <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(bid) }}</span>
           <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-            {{ formatQuantity(bid.price * bid.quantity) }}
+            {{ getDisplayTotal(bid) }}
           </span>
+        </div>
+        
+        <!-- Empty bids -->
+        <div v-if="bids.length === 0" class="p-2 text-center text-dark-600 text-xs">
+          <template v-if="store.orderbookMinQtyBTC > 0">No bids ≥ {{ store.orderbookMinQtyBTC }} BTC</template>
+          <template v-else>Loading...</template>
         </div>
       </div>
     </div>

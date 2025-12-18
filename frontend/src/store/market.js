@@ -43,6 +43,17 @@ export const useMarketStore = defineStore('market', () => {
     spread_pct: 0
   })
   
+  // 24h ticker data (separate from kline interval)
+  const ticker24h = ref({
+    volume: 0,          // 24h volume in BTC
+    quoteVolume: 0,     // 24h volume in USDT
+    priceChange: 0,
+    priceChangePercent: 0,
+    highPrice: 0,
+    lowPrice: 0,
+    lastPrice: 0
+  })
+  
   const kline = ref({
     time: 0,
     open: 0,
@@ -85,6 +96,50 @@ export const useMarketStore = defineStore('market', () => {
   const orderbookDepth = ref(10)
   const tradesCount = ref(15)
   const activeTab = ref('analysis') // 'analysis', 'signals', 'llm'
+  
+  // ============ Display Unit Preferences (persisted) ============
+  const displayUnitVolume = ref(
+    localStorage.getItem('btc_display_unit_volume') || 'USD'
+  ) // 'BTC' or 'USD'
+  
+  const displayUnitOrderBook = ref(
+    localStorage.getItem('btc_display_unit_orderbook') || 'BTC'
+  ) // 'BTC' or 'USD'
+  
+  const displayUnitTrades = ref(
+    localStorage.getItem('btc_display_unit_trades') || 'BTC'
+  ) // 'BTC' or 'USD'
+  
+  // Trade filter settings (persisted)
+  const tradeMinQtyBTC = ref(
+    parseFloat(localStorage.getItem('btc_trade_min_qty')) || 0
+  )
+  
+  // Order book filter settings (persisted)
+  const orderbookMinQtyBTC = ref(
+    parseFloat(localStorage.getItem('btc_orderbook_min_qty')) || 0
+  )
+  
+  // Watch and persist display unit preferences
+  watch(displayUnitVolume, (val) => {
+    localStorage.setItem('btc_display_unit_volume', val)
+  })
+  
+  watch(displayUnitOrderBook, (val) => {
+    localStorage.setItem('btc_display_unit_orderbook', val)
+  })
+  
+  watch(displayUnitTrades, (val) => {
+    localStorage.setItem('btc_display_unit_trades', val)
+  })
+  
+  watch(tradeMinQtyBTC, (val) => {
+    localStorage.setItem('btc_trade_min_qty', val.toString())
+  })
+  
+  watch(orderbookMinQtyBTC, (val) => {
+    localStorage.setItem('btc_orderbook_min_qty', val.toString())
+  })
   
   // ============ Notification Settings ============
   // Initialize from localStorage or defaults
@@ -152,6 +207,9 @@ export const useMarketStore = defineStore('market', () => {
   let llmAnalysisPollTimer = null
   let marketSignalsPollTimer = null
   
+  // 24h ticker polling
+  let ticker24hPollTimer = null
+  
   // ============ Computed Properties ============
   const lastPrice = computed(() => kline.value?.close || ticker.value?.bid_price || 0)
   
@@ -179,6 +237,60 @@ export const useMarketStore = defineStore('market', () => {
   })
   
   const orderbookImbalance = computed(() => orderbook.value?.imbalance || 0)
+  
+  // Computed: current interval volume with unit toggle
+  const intervalVolume = computed(() => {
+    if (displayUnitVolume.value === 'BTC') {
+      return kline.value?.volume || 0
+    }
+    return kline.value?.quote_volume || 0
+  })
+  
+  const intervalVolumeUnit = computed(() => {
+    return displayUnitVolume.value === 'BTC' ? 'BTC' : 'USD'
+  })
+  
+  // Computed: 24h volume (from separate ticker, not affected by interval)
+  const volume24h = computed(() => {
+    if (displayUnitVolume.value === 'BTC') {
+      return ticker24h.value?.volume || 0
+    }
+    return ticker24h.value?.quoteVolume || 0
+  })
+  
+  const volume24hUnit = computed(() => {
+    return displayUnitVolume.value === 'BTC' ? 'BTC' : 'USD'
+  })
+  
+  // Filtered trades based on minimum quantity
+  const filteredTrades = computed(() => {
+    const allTrades = trades.value || []
+    if (tradeMinQtyBTC.value <= 0) return allTrades
+    return allTrades.filter(t => t.quantity >= tradeMinQtyBTC.value)
+  })
+  
+  // Max trade quantity for visual bars
+  const maxTradeQty = computed(() => {
+    const filtered = filteredTrades.value
+    if (filtered.length === 0) return 1
+    return Math.max(...filtered.map(t => t.quantity))
+  })
+  
+  // Filtered orderbook based on minimum quantity
+  const filteredOrderbook = computed(() => {
+    const bids = orderbook.value.bids || []
+    const asks = orderbook.value.asks || []
+    
+    if (orderbookMinQtyBTC.value <= 0) {
+      return { bids, asks, imbalance: orderbook.value.imbalance }
+    }
+    
+    return {
+      bids: bids.filter(b => b.quantity >= orderbookMinQtyBTC.value),
+      asks: asks.filter(a => a.quantity >= orderbookMinQtyBTC.value),
+      imbalance: orderbook.value.imbalance
+    }
+  })
   
   // Signal-related computed properties
   const currentSignal = computed(() => {
@@ -376,6 +488,9 @@ export const useMarketStore = defineStore('market', () => {
     // Connect to Binance WebSocket
     connectWebSocket()
     
+    // Start 24h ticker polling (every 5 seconds)
+    start24hTickerPolling()
+    
     // Start ML API polling if enabled
     if (config.value.ml_api_enabled) {
       startMLPolling()
@@ -384,6 +499,27 @@ export const useMarketStore = defineStore('market', () => {
   
   async function fetchInitialData() {
     const sym = symbol.value.toUpperCase()
+    
+    // Fetch 24h ticker (separate from interval)
+    try {
+      const response = await fetch(
+        `${config.value.binance_rest_base}/ticker/24hr?symbol=${sym}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        ticker24h.value = {
+          volume: parseFloat(data.volume),
+          quoteVolume: parseFloat(data.quoteVolume),
+          priceChange: parseFloat(data.priceChange),
+          priceChangePercent: parseFloat(data.priceChangePercent),
+          highPrice: parseFloat(data.highPrice),
+          lowPrice: parseFloat(data.lowPrice),
+          lastPrice: parseFloat(data.lastPrice)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch 24h ticker:', e)
+    }
     
     // Fetch order book snapshot
     try {
@@ -483,7 +619,7 @@ export const useMarketStore = defineStore('market', () => {
           return
         }
         
-        console.log(`[${thisConnectionId}] âœ… Connected to Binance WebSocket`)
+        console.log(`[${thisConnectionId}] ✅ Connected to Binance WebSocket`)
         isConnected.value = true
         isConnecting.value = false
         reconnectAttempts = 0
@@ -547,6 +683,7 @@ export const useMarketStore = defineStore('market', () => {
     reconnectTimer = null
     stopRateTracking()
     stopMLPolling()
+    stop24hTickerPolling()
     
     if (ws) {
       ws.close()
@@ -572,6 +709,45 @@ export const useMarketStore = defineStore('market', () => {
     if (rateInterval) {
       clearInterval(rateInterval)
       rateInterval = null
+    }
+  }
+  
+  // ============ 24h Ticker Polling ============
+  function start24hTickerPolling() {
+    // Poll immediately
+    fetch24hTicker()
+    
+    // Then poll every 5 seconds
+    ticker24hPollTimer = setInterval(fetch24hTicker, 5000)
+  }
+  
+  function stop24hTickerPolling() {
+    if (ticker24hPollTimer) {
+      clearInterval(ticker24hPollTimer)
+      ticker24hPollTimer = null
+    }
+  }
+  
+  async function fetch24hTicker() {
+    try {
+      const sym = symbol.value.toUpperCase()
+      const response = await fetch(
+        `${config.value.binance_rest_base}/ticker/24hr?symbol=${sym}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        ticker24h.value = {
+          volume: parseFloat(data.volume),
+          quoteVolume: parseFloat(data.quoteVolume),
+          priceChange: parseFloat(data.priceChange),
+          priceChangePercent: parseFloat(data.priceChangePercent),
+          highPrice: parseFloat(data.highPrice),
+          lowPrice: parseFloat(data.lowPrice),
+          lastPrice: parseFloat(data.lastPrice)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch 24h ticker:', e)
     }
   }
   
@@ -919,6 +1095,29 @@ export const useMarketStore = defineStore('market', () => {
     soundEnabled.value = !soundEnabled.value
   }
   
+  // Toggle display units
+  function toggleVolumeUnit() {
+    displayUnitVolume.value = displayUnitVolume.value === 'BTC' ? 'USD' : 'BTC'
+  }
+  
+  function toggleOrderBookUnit() {
+    displayUnitOrderBook.value = displayUnitOrderBook.value === 'BTC' ? 'USD' : 'BTC'
+  }
+  
+  function toggleTradesUnit() {
+    displayUnitTrades.value = displayUnitTrades.value === 'BTC' ? 'USD' : 'BTC'
+  }
+  
+  // Set trade filter
+  function setTradeMinQty(qty) {
+    tradeMinQtyBTC.value = Math.max(0, parseFloat(qty) || 0)
+  }
+  
+  // Set orderbook filter
+  function setOrderbookMinQty(qty) {
+    orderbookMinQtyBTC.value = Math.max(0, parseFloat(qty) || 0)
+  }
+  
   // Force refresh ML data
   function refreshMLData() {
     fetchMarketAnalysis()
@@ -942,6 +1141,7 @@ export const useMarketStore = defineStore('market', () => {
     
     // Binance data
     ticker,
+    ticker24h,
     kline,
     klineHistory,
     trades,
@@ -960,6 +1160,13 @@ export const useMarketStore = defineStore('market', () => {
     orderbookDepth,
     tradesCount,
     activeTab,
+    
+    // Display unit preferences
+    displayUnitVolume,
+    displayUnitOrderBook,
+    displayUnitTrades,
+    tradeMinQtyBTC,
+    orderbookMinQtyBTC,
     
     // Notification settings
     notificationsEnabled,
@@ -982,6 +1189,13 @@ export const useMarketStore = defineStore('market', () => {
     orderbookImbalance,
     currentSignal,
     signalColor,
+    intervalVolume,
+    intervalVolumeUnit,
+    volume24h,
+    volume24hUnit,
+    filteredTrades,
+    maxTradeQty,
+    filteredOrderbook,
     
     // Actions
     connect,
@@ -994,6 +1208,11 @@ export const useMarketStore = defineStore('market', () => {
     toggleVolatilityNotifications,
     toggleAINotifications,
     toggleSound,
+    toggleVolumeUnit,
+    toggleOrderBookUnit,
+    toggleTradesUnit,
+    setTradeMinQty,
+    setOrderbookMinQty,
     refreshMLData,
     sendNotification,
     playNotificationSound,
