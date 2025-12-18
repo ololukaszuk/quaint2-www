@@ -18,9 +18,10 @@ const bids = computed(() => {
   return data.slice(0, displayDepth.value)
 })
 
+// Asks: Keep lowest price at bottom (ascending order, then reverse for display)
 const asks = computed(() => {
   const data = store.orderbook?.asks || []
-  return data.slice(0, displayDepth.value).sort((a, b) => b.price - a.price)
+  return data.slice(0, displayDepth.value).reverse()
 })
 
 const maxVolume = computed(() => {
@@ -51,6 +52,7 @@ function scrollBidsToTop() {
 
 let currentSymbol = ''
 
+// Watch for orderbook updates and maintain scroll position
 watch(
   () => [asks.value.length, bids.value.length, store.symbol],
   async ([askLen, bidLen, sym]) => {
@@ -59,12 +61,16 @@ watch(
       currentSymbol = sym
     }
     
-    if (askLen > 0 && bidLen > 0 && symbolChanged) {
+    // Always scroll asks to bottom to keep lowest ask near spread
+    if (askLen > 0) {
       await nextTick()
-      setTimeout(() => {
-        scrollAsksToBottom()
-        scrollBidsToTop()
-      }, 50)
+      scrollAsksToBottom()
+    }
+    
+    // Scroll bids to top on symbol change
+    if (bidLen > 0 && symbolChanged) {
+      await nextTick()
+      scrollBidsToTop()
     }
   },
   { immediate: true }
@@ -82,7 +88,7 @@ onMounted(() => {
   <div class="h-full flex flex-col">
     <!-- Header -->
     <div class="card-header flex-shrink-0" :class="{ 'py-2 px-3': compact }">
-      <h3 class="card-title" :class="{ 'text-xs': compact }">📈 Order Book</h3>
+      <h3 class="card-title" :class="{ 'text-xs': compact }">ðŸ“ˆ Order Book</h3>
       <div class="flex items-center gap-2">
         <span 
           :class="[
@@ -115,8 +121,8 @@ onMounted(() => {
         class="overflow-y-auto overflow-x-hidden border-b border-dark-700/30 min-h-0"
       >
         <div 
-          v-for="(ask, i) in asks" 
-          :key="'ask-' + i"
+          v-for="ask in asks" 
+          :key="'ask-' + ask.price"
           class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
           :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
         >
@@ -147,8 +153,8 @@ onMounted(() => {
         class="overflow-y-auto overflow-x-hidden min-h-0"
       >
         <div 
-          v-for="(bid, i) in bids" 
-          :key="'bid-' + i"
+          v-for="bid in bids" 
+          :key="'bid-' + bid.price"
           class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
           :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
         >

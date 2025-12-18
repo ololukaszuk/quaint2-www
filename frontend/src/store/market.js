@@ -73,7 +73,10 @@ export const useMarketStore = defineStore('market', () => {
   
   // Track signal changes for notifications
   const previousSignalType = ref(null)
-  const previousPrice = ref(null)
+  const previousLLMAnalysisId = ref(null)
+  
+  // Track prices for volatility detection (with timestamps for 1-minute window)
+  const priceHistory = ref([]) // Array of {price, timestamp}
   
   // ============ UI State ============
   const showOrderBook = ref(true)
@@ -84,11 +87,37 @@ export const useMarketStore = defineStore('market', () => {
   const activeTab = ref('analysis') // 'analysis', 'signals', 'llm'
   
   // ============ Notification Settings ============
-  const notificationsEnabled = ref(false)
+  // Initialize from localStorage or defaults
+  const notificationsEnabled = ref(
+    localStorage.getItem('btc_notifications_enabled') === 'true' || false
+  )
   const notificationPermission = ref('default')
-  const signalNotificationsEnabled = ref(true)
-  const volatilityNotificationsEnabled = ref(true)
-  const soundEnabled = ref(true)
+  const signalNotificationsEnabled = ref(
+    localStorage.getItem('btc_signal_notifications') === 'false' ? false : true
+  )
+  const volatilityNotificationsEnabled = ref(
+    localStorage.getItem('btc_volatility_notifications') === 'false' ? false : true
+  )
+  const soundEnabled = ref(
+    localStorage.getItem('btc_sound_enabled') === 'false' ? false : true
+  )
+  
+  // Watch for changes and persist to localStorage
+  watch(notificationsEnabled, (val) => {
+    localStorage.setItem('btc_notifications_enabled', val.toString())
+  })
+  
+  watch(signalNotificationsEnabled, (val) => {
+    localStorage.setItem('btc_signal_notifications', val.toString())
+  })
+  
+  watch(volatilityNotificationsEnabled, (val) => {
+    localStorage.setItem('btc_volatility_notifications', val.toString())
+  })
+  
+  watch(soundEnabled, (val) => {
+    localStorage.setItem('btc_sound_enabled', val.toString())
+  })
   
   // ============ Statistics ============
   const stats = ref({
@@ -244,25 +273,47 @@ export const useMarketStore = defineStore('market', () => {
   }
   
   function checkVolatility() {
-    if (!volatilityNotificationsEnabled.value || !previousPrice.value || !lastPrice.value) {
-      previousPrice.value = lastPrice.value
+    if (!volatilityNotificationsEnabled.value || !lastPrice.value) {
       return
     }
     
-    const changePercent = Math.abs((lastPrice.value - previousPrice.value) / previousPrice.value * 100)
+    const now = Date.now()
+    const currentPrice = lastPrice.value
+    
+    // Add current price to history
+    priceHistory.value.push({ price: currentPrice, timestamp: now })
+    
+    // Remove prices older than 60 seconds
+    priceHistory.value = priceHistory.value.filter(p => now - p.timestamp <= 60000)
+    
+    // Need at least 2 data points and some time elapsed
+    if (priceHistory.value.length < 2) return
+    
+    // Get price from 60 seconds ago (or earliest available)
+    const oldestPrice = priceHistory.value[0].price
+    const timeDiff = (now - priceHistory.value[0].timestamp) / 1000 // in seconds
+    
+    // Only check if we have at least 10 seconds of data
+    if (timeDiff < 10) return
+    
+    // Calculate percentage change
+    const changePercent = Math.abs((currentPrice - oldestPrice) / oldestPrice * 100)
     const threshold = config.value.notifications?.volatility_threshold || 0.5
     
+    // Alert if threshold exceeded
     if (changePercent >= threshold) {
-      const direction = lastPrice.value > previousPrice.value ? '📈 UP' : '📉 DOWN'
+      const direction = currentPrice > oldestPrice ? '📈 UP' : '📉 DOWN'
+      const timeDesc = timeDiff >= 60 ? '1 min' : `${Math.floor(timeDiff)}s`
       sendNotification(
         `High Volatility Alert`,
-        `BTC moved ${direction} ${changePercent.toFixed(2)}% ($${lastPrice.value.toFixed(2)})`,
+        `BTC moved ${direction} ${changePercent.toFixed(2)}% in ${timeDesc} ($${currentPrice.toFixed(2)})`,
         { tag: 'volatility', soundType: 'volatility' }
       )
+      // Clear history after alert to avoid spam
+      priceHistory.value = [{ price: currentPrice, timestamp: now }]
     }
-    
-    previousPrice.value = lastPrice.value
   }
+
   
   function checkSignalChange(newSignal) {
     if (!signalNotificationsEnabled.value || !newSignal) return
@@ -284,6 +335,17 @@ export const useMarketStore = defineStore('market', () => {
   async function connect() {
     if (ws && ws.readyState === WebSocket.OPEN) {
       return
+    }
+    
+    // Check notification permission on start
+    if ('Notification' in window) {
+      notificationPermission.value = Notification.permission
+      // If notifications were enabled before and permission is still granted
+      if (notificationPermission.value === 'granted' && notificationsEnabled.value) {
+        notificationsEnabled.value = true
+      } else if (notificationPermission.value !== 'granted') {
+        notificationsEnabled.value = false
+      }
     }
     
     // Load config from server only on first connect
@@ -414,7 +476,7 @@ export const useMarketStore = defineStore('market', () => {
           return
         }
         
-        console.log(`[${thisConnectionId}] ✅ Connected to Binance WebSocket`)
+        console.log(`[${thisConnectionId}] âœ… Connected to Binance WebSocket`)
         isConnected.value = true
         isConnecting.value = false
         reconnectAttempts = 0
@@ -576,7 +638,24 @@ export const useMarketStore = defineStore('market', () => {
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.data && data.data.length > 0) {
-          llmAnalysis.value = data.data[0]
+          const newAnalysis = data.data[0]
+          
+          // Check if this is a new prediction (different ID)
+          if (notificationsEnabled.value && previousLLMAnalysisId.value !== null && 
+              newAnalysis.id !== previousLLMAnalysisId.value) {
+            const direction = newAnalysis.prediction_direction || 'NEUTRAL'
+            const directionEmoji = direction === 'BULLISH' ? '📈' : direction === 'BEARISH' ? '📉' : '➡️'
+            const confidence = newAnalysis.prediction_confidence || 'UNKNOWN'
+            
+            sendNotification(
+              `${directionEmoji} New AI Prediction`,
+              `${direction} (${confidence} confidence) - ${newAnalysis.reasoning?.substring(0, 80) || 'Check the AI tab for details'}...`,
+              { tag: 'llm-prediction', soundType: 'signal' }
+            )
+          }
+          
+          previousLLMAnalysisId.value = newAnalysis.id
+          llmAnalysis.value = newAnalysis
         }
       }
     } catch (e) {
@@ -692,6 +771,9 @@ export const useMarketStore = defineStore('market', () => {
   }
   
   function handleDepth(data) {
+    const currentBestBid = ticker.value?.bid_price || 0
+    const currentBestAsk = ticker.value?.ask_price || 0
+    
     if (data.b && data.b.length > 0) {
       const bidsMap = new Map(
         orderbook.value.bids.map(b => [b.price, b.quantity])
@@ -705,6 +787,16 @@ export const useMarketStore = defineStore('market', () => {
           bidsMap.delete(price)
         } else {
           bidsMap.set(price, qty)
+        }
+      }
+      
+      // Remove stale entries that are too far from best bid
+      if (currentBestBid > 0) {
+        const maxDistance = currentBestBid * 0.01 // 1% range
+        for (const [price] of bidsMap) {
+          if (price < currentBestBid - maxDistance) {
+            bidsMap.delete(price)
+          }
         }
       }
       
@@ -727,6 +819,16 @@ export const useMarketStore = defineStore('market', () => {
           asksMap.delete(price)
         } else {
           asksMap.set(price, qty)
+        }
+      }
+      
+      // Remove stale entries that are too far from best ask
+      if (currentBestAsk > 0) {
+        const maxDistance = currentBestAsk * 0.01 // 1% range
+        for (const [price] of asksMap) {
+          if (price > currentBestAsk + maxDistance) {
+            asksMap.delete(price)
+          }
         }
       }
       

@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useMarketStore } from '../store/market'
-import { formatPrice, formatQuantity, formatTimeMs } from '../utils/format'
+import { formatPrice, formatQuantity, formatTimeMs, getBuyPressureIndicator } from '../utils/format'
 
 const props = defineProps({
   compact: { type: Boolean, default: false }
@@ -15,13 +15,25 @@ const recentTrades = computed(() => {
   const t = store.trades || []
   return t.slice(-displayCount.value).reverse()
 })
+
+// Calculate buy/sell ratio from recent trades
+const buySellRatio = computed(() => {
+  if (recentTrades.value.length === 0) return 50
+  
+  const buyCount = recentTrades.value.filter(t => t.side === 'buy').length
+  return (buyCount / recentTrades.value.length) * 100
+})
+
+const pressureIndicator = computed(() => {
+  return getBuyPressureIndicator(buySellRatio.value)
+})
 </script>
 
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
     <div class="card-header flex-shrink-0" :class="{ 'py-2 px-3': compact }">
-      <h3 class="card-title" :class="{ 'text-xs': compact }">⚡ Recent Trades</h3>
+      <h3 class="card-title" :class="{ 'text-xs': compact }">âš¡ Recent Trades</h3>
       <span class="text-xs text-dark-500">
         {{ store.stats?.trades_received || 0 }} total
       </span>
