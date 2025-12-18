@@ -180,6 +180,51 @@ export function throttle(fn, limit) {
 }
 
 /**
+ * Format timestamp to "X ago" format
+ */
+export function formatTimeAgo(timestamp) {
+  if (!timestamp) return '-'
+  
+  const now = Date.now()
+  const time = new Date(timestamp).getTime()
+  const diffSeconds = Math.floor((now - time) / 1000)
+  
+  if (diffSeconds < 60) return `${diffSeconds}s ago`
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
+  return `${Math.floor(diffSeconds / 86400)}d ago`
+}
+
+/**
+ * Format timestamp to local time
+ */
+export function formatTimeLocal(timestamp) {
+  if (!timestamp) return '-'
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+}
+
+/**
+ * Format timestamp to local date and time
+ */
+export function formatDateTimeLocal(timestamp) {
+  if (!timestamp) return '-'
+  const date = new Date(timestamp)
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
+}
+
+/**
  * Clamp a value between min and max
  */
 export function clamp(value, min, max) {

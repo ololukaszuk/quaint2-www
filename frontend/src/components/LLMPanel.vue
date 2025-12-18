@@ -44,7 +44,7 @@ const formatTimeAgo = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto overflow-x-hidden">
+  <div style="height: 100%; overflow-y: auto; overflow-x: hidden;">
     <div v-if="analysis" class="p-4 space-y-4" :class="{ 'p-3 space-y-3': mobile }">
       <!-- Header -->
       <div class="flex items-center justify-between">

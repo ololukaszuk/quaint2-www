@@ -48,7 +48,7 @@ const formatTimeAgo = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto overflow-x-hidden">
+  <div style="height: 100%; overflow-y: auto; overflow-x: hidden;">
     <!-- Current Signal Card -->
     <div class="p-4 border-b border-dark-700/50" :class="{ 'p-3': mobile }">
       <div v-if="analysis" class="space-y-3">

@@ -33,18 +33,18 @@ const isMobile = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-dark-950 text-dark-100 flex flex-col">
+  <div class="h-screen bg-dark-950 text-dark-100 flex flex-col overflow-hidden">
     <!-- Header -->
     <Header @toggle-sidebar="showMobileSidebar = !showMobileSidebar" />
     
     <!-- Main Content -->
-    <main class="flex-1 overflow-hidden">
+    <main class="flex-1 overflow-hidden min-h-0">
       <!-- Desktop Layout -->
       <div class="hidden lg:flex h-full">
         <!-- Left: Chart & Market Data (65%) -->
-        <div class="flex-1 flex flex-col min-w-0 p-4 gap-4">
+        <div class="flex-1 flex flex-col min-w-0 p-4 gap-4" style="height: 100%; overflow: hidden;">
           <!-- Price Overview Cards -->
-          <div class="grid grid-cols-4 gap-3">
+          <div class="grid grid-cols-4 gap-3 flex-shrink-0">
             <PriceCard
               label="BTC Price"
               :value="store.lastPrice"
@@ -53,32 +53,32 @@ const isMobile = computed(() => {
               size="large"
             />
             <PriceCard
-              label="24h Volume"
-              :value="store.kline?.quote_volume"
-              format="compact"
-              prefix="$"
-            />
-            <PriceCard
-              label="Buy Pressure"
+              :label="`Buy Pressure (${store.interval})`"
               :value="store.buyRatio"
               format="percent"
               :indicator="store.buyRatio > 55 ? 'up' : store.buyRatio < 45 ? 'down' : 'neutral'"
             />
             <PriceCard
-              label="Spread"
-              :value="store.spreadPercent"
-              format="bps"
-              :badge="store.liquidityRating"
+              :label="`Volume (${store.interval})`"
+              :value="store.kline?.volume"
+              format="compact"
+              suffix=" BTC"
+            />
+            <PriceCard
+              label="24h Volume"
+              :value="store.kline?.quote_volume"
+              format="compact"
+              prefix="$"
             />
           </div>
           
           <!-- Chart -->
-          <div class="flex-1 card min-h-[400px]">
+          <div class="flex-1 card" style="min-height: 400px; overflow: hidden;">
             <CandlestickChart />
           </div>
           
           <!-- Bottom: Order Book & Trades -->
-          <div class="grid grid-cols-2 gap-4 h-[280px]">
+          <div class="grid grid-cols-2 gap-4 flex-shrink-0" style="height: 280px;">
             <div v-if="store.showOrderBook" class="card overflow-hidden">
               <OrderBook />
             </div>
@@ -89,9 +89,9 @@ const isMobile = computed(() => {
         </div>
         
         <!-- Right: Analysis Panel (35%) -->
-        <div class="w-[420px] border-l border-dark-700/50 flex flex-col overflow-hidden">
+        <div class="w-[420px] border-l border-dark-700/50 flex flex-col" style="height: 100%; overflow: hidden;">
           <!-- Tab Navigation -->
-          <div class="flex border-b border-dark-700/50 bg-dark-900/50">
+          <div class="flex-shrink-0 flex border-b border-dark-700/50 bg-dark-900/50">
             <button
               @click="store.setActiveTab('analysis')"
               class="flex-1 px-4 py-3 text-sm font-medium transition-colors relative"
@@ -155,14 +155,14 @@ const isMobile = computed(() => {
           </div>
           
           <!-- Tab Content -->
-          <div class="flex-1 overflow-hidden min-h-0">
+          <div class="flex-1" style="overflow: hidden; min-height: 0;">
             <AnalysisPanel v-if="store.activeTab === 'analysis'" />
             <SignalPanel v-if="store.activeTab === 'signals'" />
             <LLMPanel v-if="store.activeTab === 'llm'" />
           </div>
           
           <!-- Notification Settings -->
-          <div class="flex-shrink-0">
+          <div class="flex-shrink-0" style="max-height: 400px; overflow-y: auto;">
             <NotificationSettings />
           </div>
         </div>

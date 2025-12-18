@@ -29,7 +29,7 @@ ML_API_VERIFY_SSL = os.environ.get("ML_API_VERIFY_SSL", "false").lower() == "tru
 app = FastAPI(
     title="QuAInt²",
     description="Real-time market analysis with AI-powered signals",
-    version="2.1.0"
+    version="2.1.1"
 )
 
 # CORS middleware
@@ -106,7 +106,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "2.1.0",
+        "version": "2.1.1",
         "ml_api_status": ml_api_status
     }
 

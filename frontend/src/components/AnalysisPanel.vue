@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useMarketStore } from '../store/market'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatTimeAgo } from '../utils/format'
 
 const props = defineProps({
   mobile: { type: Boolean, default: false }
@@ -50,8 +50,14 @@ const zoneClass = (zone) => {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto overflow-x-hidden">
+  <div style="height: 100%; overflow-y: auto; overflow-x: hidden;">
     <div v-if="analysis" class="divide-y divide-dark-700/50">
+      
+      <!-- Last Updated Header -->
+      <div class="px-4 py-2 bg-dark-900/50 border-b border-dark-700/50 flex items-center justify-between">
+        <span class="text-xs text-dark-500">Current Analysis</span>
+        <span class="text-xs text-dark-600">Updated {{ formatTimeAgo(analysis.analysis_time) }}</span>
+      </div>
       
       <!-- SMC Section (Collapsible) -->
       <div class="cursor-pointer" @click="toggleSection('smc')">
