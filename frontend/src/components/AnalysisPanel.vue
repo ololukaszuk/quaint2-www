@@ -395,6 +395,7 @@ const severityClass = (severity) => {
           </div>
         </div>
       </div>
+    </div>
     
     <!-- No Data State -->
     <div v-else class="flex items-center justify-center h-full">
