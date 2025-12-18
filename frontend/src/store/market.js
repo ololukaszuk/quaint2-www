@@ -779,13 +779,13 @@ export const useMarketStore = defineStore('market', () => {
   }
   
   function handleDepth(data) {
-    const currentBestBid = ticker.value?.bid_price || 0
-    const currentBestAsk = ticker.value?.ask_price || 0
-    
     if (data.b && data.b.length > 0) {
       const bidsMap = new Map(
         orderbook.value.bids.map(b => [b.price, b.quantity])
       )
+      
+      // Track best bid from this update
+      let updateBestBid = 0
       
       for (const [priceStr, qtyStr] of data.b) {
         const price = parseFloat(priceStr)
@@ -795,14 +795,19 @@ export const useMarketStore = defineStore('market', () => {
           bidsMap.delete(price)
         } else {
           bidsMap.set(price, qty)
+          updateBestBid = Math.max(updateBestBid, price)
         }
       }
       
-      // Remove stale entries that are too far from best bid
-      if (currentBestBid > 0) {
-        const maxDistance = currentBestBid * 0.01 // 1% range
-        for (const [price] of bidsMap) {
-          if (price < currentBestBid - maxDistance) {
+      // Use best bid from ticker or this update
+      const bestBid = ticker.value?.bid_price || updateBestBid
+      
+      // Remove stale bids (more aggressive: 0.2% range)
+      if (bestBid > 0) {
+        const maxDistance = bestBid * 0.002 // 0.2% range
+        for (const [price] of Array.from(bidsMap.entries())) {
+          // Remove bids that are too far below best bid OR above best ask (crossed)
+          if (price < bestBid - maxDistance || (ticker.value?.ask_price && price >= ticker.value.ask_price)) {
             bidsMap.delete(price)
           }
         }
@@ -819,6 +824,9 @@ export const useMarketStore = defineStore('market', () => {
         orderbook.value.asks.map(a => [a.price, a.quantity])
       )
       
+      // Track best ask from this update
+      let updateBestAsk = Infinity
+      
       for (const [priceStr, qtyStr] of data.a) {
         const price = parseFloat(priceStr)
         const qty = parseFloat(qtyStr)
@@ -827,14 +835,19 @@ export const useMarketStore = defineStore('market', () => {
           asksMap.delete(price)
         } else {
           asksMap.set(price, qty)
+          updateBestAsk = Math.min(updateBestAsk, price)
         }
       }
       
-      // Remove stale entries that are too far from best ask
-      if (currentBestAsk > 0) {
-        const maxDistance = currentBestAsk * 0.01 // 1% range
-        for (const [price] of asksMap) {
-          if (price > currentBestAsk + maxDistance) {
+      // Use best ask from ticker or this update
+      const bestAsk = ticker.value?.ask_price || (updateBestAsk !== Infinity ? updateBestAsk : 0)
+      
+      // Remove stale asks (more aggressive: 0.2% range)
+      if (bestAsk > 0) {
+        const maxDistance = bestAsk * 0.002 // 0.2% range
+        for (const [price] of Array.from(asksMap.entries())) {
+          // Remove asks that are too far above best ask OR below best bid (crossed)
+          if (price > bestAsk + maxDistance || (ticker.value?.bid_price && price <= ticker.value.bid_price)) {
             asksMap.delete(price)
           }
         }

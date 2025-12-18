@@ -44,7 +44,7 @@ const formatTimeAgo = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto overflow-x-hidden max-h-[calc(100vh-300px)]">
+  <div class="h-full overflow-y-auto overflow-x-hidden">
     <div v-if="analysis" class="p-4 space-y-4" :class="{ 'p-3 space-y-3': mobile }">
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -219,7 +219,7 @@ const formatTimeAgo = (timestamp) => {
         
         <div v-if="showWarnings" class="space-y-1 px-3 py-2 border-t border-yellow-500/20" :class="{ 'px-2 py-1.5': mobile }">
           <div 
-            v-for="(warning, i) in analysis.warnings_at_analysis"
+            v-for="(warning, i) in analysis.warnings_at_analysis.filter(w => w.type && w.message)"
             :key="i"
             class="p-2 bg-yellow-500/10 rounded text-xs"
           >

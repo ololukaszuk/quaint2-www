@@ -57,9 +57,9 @@ const testNotification = () => {
     <!-- Content -->
     <div 
       class="overflow-hidden transition-all duration-200"
-      :class="isExpanded ? 'max-h-80' : 'max-h-0'"
+      :class="isExpanded ? 'max-h-96' : 'max-h-0'"
     >
-      <div class="px-4 pb-4 space-y-3" :class="{ 'px-3 pb-3': mobile }">
+      <div class="px-4 pb-4 space-y-3 overflow-y-auto max-h-96" :class="{ 'px-3 pb-3': mobile }">
         <!-- Master Toggle -->
         <div class="p-3 bg-dark-800/50 rounded-lg">
           <label class="flex items-center justify-between cursor-pointer">

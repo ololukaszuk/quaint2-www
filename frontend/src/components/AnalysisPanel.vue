@@ -57,7 +57,7 @@ const severityClass = (severity) => {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto overflow-x-hidden max-h-[calc(100vh-300px)]">
+  <div class="h-full overflow-y-auto overflow-x-hidden">
     <div v-if="analysis" class="divide-y divide-dark-700/50">
       
       <!-- SMC Section (Collapsible) -->
@@ -101,10 +101,10 @@ const severityClass = (severity) => {
           
           <!-- Order Blocks -->
           <div v-if="analysis.smc_order_blocks?.length">
-            <div class="text-xs text-dark-500 mb-2">Order Blocks</div>
-            <div class="space-y-1">
+            <div class="text-xs text-dark-500 mb-2">Order Blocks ({{ analysis.smc_order_blocks.length }})</div>
+            <div class="space-y-1 max-h-48 overflow-y-auto">
               <div 
-                v-for="(ob, i) in analysis.smc_order_blocks.slice(0, 3)"
+                v-for="(ob, i) in analysis.smc_order_blocks.slice(0, 10)"
                 :key="i"
                 class="flex items-center justify-between text-xs p-2 rounded"
                 :class="ob.type === 'bullish' ? 'bg-green-500/10' : 'bg-red-500/10'"
@@ -281,6 +281,77 @@ const severityClass = (severity) => {
               </div>
             </div>
           </div>
+          
+          <!-- Fibonacci Pivots -->
+          <div v-if="analysis.pivot_r3_fibonacci" class="mb-3">
+            <div class="text-xs text-dark-500 mb-2">Fibonacci</div>
+            <div class="grid grid-cols-3 gap-1 text-xs">
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R3</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_fibonacci) }}</div>
+              </div>
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R2</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_fibonacci) }}</div>
+              </div>
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R1</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_fibonacci) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S1</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_fibonacci) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S2</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_fibonacci) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S3</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_fibonacci) }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Camarilla Pivots -->
+          <div v-if="analysis.pivot_r4_camarilla" class="mb-3">
+            <div class="text-xs text-dark-500 mb-2">Camarilla</div>
+            <div class="grid grid-cols-4 gap-1 text-xs">
+              <div class="p-1 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60 text-xs">R4</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r4_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60 text-xs">R3</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60 text-xs">R2</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60 text-xs">R1</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60 text-xs">S1</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60 text-xs">S2</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60 text-xs">S3</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_camarilla) }}</div>
+              </div>
+              <div class="p-1 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60 text-xs">S4</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s4_camarilla) }}</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
       
@@ -348,7 +419,7 @@ const severityClass = (severity) => {
         <div v-if="expandedSections.warnings && analysis.warnings?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <div class="space-y-2">
             <div 
-              v-for="(warning, i) in analysis.warnings"
+              v-for="(warning, i) in analysis.warnings.filter(w => w.type && w.message)"
               :key="`warning-${i}`"
               class="p-2 rounded border text-sm"
               :class="severityClass(warning.severity)"
