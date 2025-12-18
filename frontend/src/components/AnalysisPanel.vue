@@ -47,13 +47,6 @@ const zoneClass = (zone) => {
   if (zone === 'PREMIUM') return 'text-red-400'
   return 'text-yellow-400'
 }
-
-const severityClass = (severity) => {
-  if (severity === 'CRITICAL') return 'bg-red-500/20 text-red-400 border-red-500/30'
-  if (severity === 'HIGH') return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-  if (severity === 'MEDIUM') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-  return 'bg-dark-700 text-dark-400'
-}
 </script>
 
 <template>
@@ -419,16 +412,11 @@ const severityClass = (severity) => {
         <div v-if="expandedSections.warnings && analysis.warnings?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <div class="space-y-2">
             <div 
-              v-for="(warning, i) in analysis.warnings.filter(w => w.type && w.message)"
+              v-for="(warning, i) in analysis.warnings.filter(w => w && w.trim())"
               :key="`warning-${i}`"
-              class="p-2 rounded border text-sm"
-              :class="severityClass(warning.severity)"
+              class="p-2 rounded border text-sm bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
             >
-              <div class="flex items-center justify-between">
-                <span class="font-medium">{{ warning.type?.replace(/_/g, ' ') }}</span>
-                <span class="text-xs opacity-70">{{ warning.severity }}</span>
-              </div>
-              <div class="text-xs mt-1 opacity-80">{{ warning.message }}</div>
+              {{ warning }}
             </div>
           </div>
         </div>

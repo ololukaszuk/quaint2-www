@@ -155,14 +155,16 @@ const isMobile = computed(() => {
           </div>
           
           <!-- Tab Content -->
-          <div class="flex-1 overflow-hidden">
+          <div class="flex-1 overflow-hidden min-h-0">
             <AnalysisPanel v-if="store.activeTab === 'analysis'" />
             <SignalPanel v-if="store.activeTab === 'signals'" />
             <LLMPanel v-if="store.activeTab === 'llm'" />
           </div>
           
           <!-- Notification Settings -->
-          <NotificationSettings />
+          <div class="flex-shrink-0">
+            <NotificationSettings />
+          </div>
         </div>
       </div>
       

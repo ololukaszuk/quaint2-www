@@ -219,12 +219,11 @@ const formatTimeAgo = (timestamp) => {
         
         <div v-if="showWarnings" class="space-y-1 px-3 py-2 border-t border-yellow-500/20" :class="{ 'px-2 py-1.5': mobile }">
           <div 
-            v-for="(warning, i) in analysis.warnings_at_analysis.filter(w => w.type && w.message)"
+            v-for="(warning, i) in analysis.warnings_at_analysis.filter(w => w && w.trim())"
             :key="i"
-            class="p-2 bg-yellow-500/10 rounded text-xs"
+            class="p-2 bg-yellow-500/10 rounded text-xs text-yellow-400"
           >
-            <span class="text-yellow-400 font-medium">{{ warning.type }}</span>
-            <span class="text-dark-400 ml-2">{{ warning.message }}</span>
+            {{ warning }}
           </div>
         </div>
       </div>
