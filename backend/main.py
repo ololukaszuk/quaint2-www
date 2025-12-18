@@ -47,11 +47,16 @@ VALID_INTERVALS = ['1s', '1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h',
 # HTTP client for ML API
 def get_ml_client():
     """Create an HTTP client for ML API requests."""
+    # Format the authorization header with "Bearer" prefix
+    auth_header = {}
+    if ML_API_KEY:
+        auth_header["Authorization"] = f"Bearer {ML_API_KEY}"
+    
     return httpx.AsyncClient(
         base_url=ML_API_URL,
         verify=ML_API_VERIFY_SSL,
         timeout=30.0,
-        headers={"X-API-Key": ML_API_KEY} if ML_API_KEY else {}
+        headers=auth_header
     )
 
 
