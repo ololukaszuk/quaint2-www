@@ -123,7 +123,7 @@ async def get_market_analysis(
             if signal_type:
                 params["signal_type"] = signal_type
             
-            response = await client.get("/api/market-analysis", params=params)
+            response = await client.get("/market-analysis", params=params)
             
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="Invalid ML API key")
@@ -146,7 +146,7 @@ async def get_market_signals(limit: int = Query(default=20, ge=1, le=100)):
     
     try:
         async with get_ml_client() as client:
-            response = await client.get("/api/market-signals", params={"limit": limit})
+            response = await client.get("/market-signals", params={"limit": limit})
             
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="Invalid ML API key")
@@ -169,7 +169,7 @@ async def get_llm_analysis(limit: int = Query(default=10, ge=1, le=100)):
     
     try:
         async with get_ml_client() as client:
-            response = await client.get("/api/llm-analysis", params={"limit": limit})
+            response = await client.get("/llm-analysis", params={"limit": limit})
             
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="Invalid ML API key")
@@ -202,7 +202,7 @@ async def get_ml_candles(
             if end_time:
                 params["end_time"] = end_time
             
-            response = await client.get("/api/candles", params=params)
+            response = await client.get("/candles", params=params)
             
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="Invalid ML API key")
@@ -232,7 +232,7 @@ async def get_data_quality(
             if resolved is not None:
                 params["resolved"] = resolved
             
-            response = await client.get("/api/data-quality-logs", params=params)
+            response = await client.get("/data-quality-logs", params=params)
             
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="Invalid ML API key")
