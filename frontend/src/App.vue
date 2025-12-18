@@ -42,48 +42,50 @@ const isMobile = computed(() => {
       <!-- Desktop Layout -->
       <div class="hidden lg:flex h-full">
         <!-- Left: Chart & Market Data (65%) -->
-        <div class="flex-1 flex flex-col min-w-0 p-4 gap-4" style="height: 100%; overflow: hidden;">
-          <!-- Price Overview Cards -->
-          <div class="grid grid-cols-4 gap-3 flex-shrink-0">
-            <PriceCard
-              label="BTC Price"
-              :value="store.lastPrice"
-              :change="store.priceChangePercent"
-              format="currency"
-              size="large"
-            />
-            <PriceCard
-              :label="`Buy Pressure (${store.interval})`"
-              :value="store.buyRatio"
-              format="percent"
-              :indicator="store.buyRatio > 55 ? 'up' : store.buyRatio < 45 ? 'down' : 'neutral'"
-            />
-            <PriceCard
-              :label="`Volume (${store.interval})`"
-              :value="store.kline?.volume"
-              format="compact"
-              suffix=" BTC"
-            />
-            <PriceCard
-              label="24h Volume"
-              :value="store.kline?.quote_volume"
-              format="compact"
-              prefix="$"
-            />
-          </div>
-          
-          <!-- Chart -->
-          <div class="flex-1 card" style="min-height: 400px; overflow: hidden;">
-            <CandlestickChart />
-          </div>
-          
-          <!-- Bottom: Order Book & Trades -->
-          <div class="grid grid-cols-2 gap-4 flex-shrink-0" style="height: 280px;">
-            <div v-if="store.showOrderBook" class="card overflow-hidden">
-              <OrderBook />
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden">
+          <div class="p-4 space-y-4">
+            <!-- Price Overview Cards -->
+            <div class="grid grid-cols-4 gap-3 flex-shrink-0">
+              <PriceCard
+                label="BTC Price"
+                :value="store.lastPrice"
+                :change="store.priceChangePercent"
+                format="currency"
+                size="large"
+              />
+              <PriceCard
+                :label="`Buy Pressure (${store.interval})`"
+                :value="store.buyRatio"
+                format="percent"
+                :indicator="store.buyRatio > 55 ? 'up' : store.buyRatio < 45 ? 'down' : 'neutral'"
+              />
+              <PriceCard
+                :label="`Volume (${store.interval})`"
+                :value="store.kline?.volume"
+                format="compact"
+                suffix=" BTC"
+              />
+              <PriceCard
+                label="24h Volume"
+                :value="store.kline?.quote_volume"
+                format="compact"
+                prefix="$"
+              />
             </div>
-            <div v-if="store.showTrades" class="card overflow-hidden">
-              <TradesList />
+            
+            <!-- Chart -->
+            <div class="card" style="height: 500px;">
+              <CandlestickChart />
+            </div>
+            
+            <!-- Bottom: Order Book & Trades -->
+            <div class="grid grid-cols-2 gap-4 flex-shrink-0">
+              <div v-if="store.showOrderBook" class="card" style="height: 400px;">
+                <OrderBook />
+              </div>
+              <div v-if="store.showTrades" class="card" style="height: 400px;">
+                <TradesList />
+              </div>
             </div>
           </div>
         </div>

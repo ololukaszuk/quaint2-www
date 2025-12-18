@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { createChart, CrosshairMode } from 'lightweight-charts'
 import { useMarketStore } from '../store/market'
-import { formatCurrency, formatQuantity, formatTime } from '../utils/format'
+import { formatCurrency, formatQuantity } from '../utils/format'
 
 const store = useMarketStore()
 
@@ -48,14 +48,12 @@ const getChartOptions = () => ({
       top: 0.1,
       bottom: 0.2
     },
-    // Enable touch-friendly price scale on mobile
     entireTextOnly: isMobile.value
   },
   timeScale: {
     borderColor: '#334155',
     timeVisible: true,
     secondsVisible: false,
-    // Reduce tick marks on mobile
     tickMarkFormatter: isMobile.value ? (time) => {
       const date = new Date(time * 1000)
       return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
@@ -98,30 +96,46 @@ const volumeSeriesOptions = {
   }
 }
 
-// Transform kline data for chart
+// Transform kline data for chart - FIX: ensure numbers are valid
 function transformCandles(history) {
-  if (!history || !Array.isArray(history)) return []
+  if (!history || !Array.isArray(history)) {
+    console.log('No history data')
+    return []
+  }
   
-  return history
-    .filter(k => k && k.time)
+  const candles = history
+    .filter(k => {
+      if (!k || !k.time) return false
+      // Ensure all values are valid numbers
+      if (isNaN(k.open) || isNaN(k.high) || isNaN(k.low) || isNaN(k.close)) return false
+      return true
+    })
     .map(k => ({
       time: Math.floor(k.time / 1000),
-      open: k.open,
-      high: k.high,
-      low: k.low,
-      close: k.close
+      open: Number(k.open),
+      high: Number(k.high),
+      low: Number(k.low),
+      close: Number(k.close)
     }))
     .sort((a, b) => a.time - b.time)
+  
+  console.log(`Transformed ${candles.length} candles`)
+  if (candles.length > 0) {
+    console.log('First candle:', candles[0])
+    console.log('Last candle:', candles[candles.length - 1])
+  }
+  
+  return candles
 }
 
 function transformVolume(history) {
   if (!history || !Array.isArray(history)) return []
   
   return history
-    .filter(k => k && k.time)
+    .filter(k => k && k.time && !isNaN(k.volume))
     .map(k => ({
       time: Math.floor(k.time / 1000),
-      value: k.volume,
+      value: Number(k.volume),
       color: k.close >= k.open ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'
     }))
     .sort((a, b) => a.time - b.time)
@@ -129,8 +143,12 @@ function transformVolume(history) {
 
 // Initialize chart
 function initChart() {
-  if (!chartContainer.value) return
+  if (!chartContainer.value) {
+    console.log('No chart container')
+    return
+  }
   
+  console.log('Initializing chart...')
   checkMobile()
   
   chart = createChart(chartContainer.value, {
@@ -186,71 +204,70 @@ function initChart() {
   })
   
   resizeObserver.observe(chartContainer.value)
+  
+  // Initial data load
+  updateChart()
 }
 
 // Update chart data
 function updateChart() {
-  if (!candleSeries || !volumeSeries) return
+  if (!candleSeries || !volumeSeries) {
+    console.log('Series not initialized')
+    return
+  }
+  
+  console.log('Updating chart with klineHistory:', store.klineHistory?.length || 0, 'items')
   
   const candles = transformCandles(store.klineHistory)
   const volumes = transformVolume(store.klineHistory)
   
   if (candles.length > 0) {
+    console.log('Setting candle data:', candles.length, 'candles')
     candleSeries.setData(candles)
     volumeSeries.setData(volumes)
-  }
-  
-  // Update current candle
-  if (store.kline && store.kline.time) {
-    const currentCandle = {
-      time: Math.floor(store.kline.time / 1000),
-      open: store.kline.open,
-      high: store.kline.high,
-      low: store.kline.low,
-      close: store.kline.close
-    }
-    
-    candleSeries.update(currentCandle)
-    
-    volumeSeries.update({
-      time: currentCandle.time,
-      value: store.kline.volume,
-      color: store.kline.close >= store.kline.open 
-        ? 'rgba(34, 197, 94, 0.5)' 
-        : 'rgba(239, 68, 68, 0.5)'
-    })
+  } else {
+    console.warn('No valid candle data to display')
   }
 }
 
 // Watch for data changes
 watch(
   () => store.klineHistory,
-  () => updateChart(),
+  (newHistory) => {
+    console.log('klineHistory changed:', newHistory?.length || 0, 'items')
+    if (candleSeries && newHistory && newHistory.length > 0) {
+      updateChart()
+    }
+  },
   { deep: true }
 )
 
 watch(
   () => store.kline,
-  () => {
-    if (store.kline && candleSeries) {
+  (newKline) => {
+    if (newKline && candleSeries && newKline.time) {
       const currentCandle = {
-        time: Math.floor(store.kline.time / 1000),
-        open: store.kline.open,
-        high: store.kline.high,
-        low: store.kline.low,
-        close: store.kline.close
+        time: Math.floor(newKline.time / 1000),
+        open: Number(newKline.open),
+        high: Number(newKline.high),
+        low: Number(newKline.low),
+        close: Number(newKline.close)
       }
       
-      candleSeries.update(currentCandle)
-      
-      if (volumeSeries) {
-        volumeSeries.update({
-          time: currentCandle.time,
-          value: store.kline.volume,
-          color: store.kline.close >= store.kline.open 
-            ? 'rgba(34, 197, 94, 0.5)' 
-            : 'rgba(239, 68, 68, 0.5)'
-        })
+      // Validate
+      if (!isNaN(currentCandle.open) && !isNaN(currentCandle.high) && 
+          !isNaN(currentCandle.low) && !isNaN(currentCandle.close)) {
+        candleSeries.update(currentCandle)
+        
+        if (volumeSeries) {
+          volumeSeries.update({
+            time: currentCandle.time,
+            value: Number(newKline.volume),
+            color: newKline.close >= newKline.open 
+              ? 'rgba(34, 197, 94, 0.5)' 
+              : 'rgba(239, 68, 68, 0.5)'
+          })
+        }
       }
     }
   },
@@ -261,6 +278,7 @@ watch(
 watch(
   () => store.interval,
   () => {
+    console.log('Interval changed to:', store.interval)
     if (candleSeries && volumeSeries) {
       candleSeries.setData([])
       volumeSeries.setData([])
@@ -273,16 +291,14 @@ const handleResize = () => {
   const wasMobile = isMobile.value
   checkMobile()
   
-  // Reinitialize chart if mobile state changed
   if (wasMobile !== isMobile.value && chart) {
     chart.applyOptions(getChartOptions())
   }
 }
 
 onMounted(() => {
+  console.log('CandlestickChart mounted')
   initChart()
-  updateChart()
-  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
@@ -307,7 +323,7 @@ onUnmounted(() => {
       </div>
       
       <!-- Legend (shown on hover, desktop only) -->
-      <div v-if="legendData && !isMobile" class="hidden sm:flex items-center gap-3 text-xs mono">
+      <div v-if="legendData && !isMobile" class="hidden sm:flex items-center gap-3 text-xs font-mono">
         <span>O: <span :class="legendData.close >= legendData.open ? 'price-up' : 'price-down'">{{ formatCurrency(legendData.open) }}</span></span>
         <span>H: <span class="price-up">{{ formatCurrency(legendData.high) }}</span></span>
         <span>L: <span class="price-down">{{ formatCurrency(legendData.low) }}</span></span>
@@ -332,7 +348,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Ensure touch events work properly on mobile */
 .touch-pan-y {
   touch-action: pan-y pinch-zoom;
 }
