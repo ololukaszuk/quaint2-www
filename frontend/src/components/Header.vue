@@ -36,7 +36,7 @@ const mlStatus = computed(() => {
             </svg>
           </div>
           <div class="hidden sm:block">
-            <span class="font-bold text-lg">Qu<span class="text-brand-400">AInt</span></span>
+            <span class="font-bold text-lg">QuAInt<span class="text-brand-400">²</span></span>
             <span class="hidden md:inline text-xs text-dark-500 ml-2">BTCUSDT</span>
           </div>
         </div>

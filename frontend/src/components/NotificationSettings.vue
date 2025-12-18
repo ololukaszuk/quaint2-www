@@ -23,7 +23,7 @@ const handleNotificationToggle = async () => {
 const testNotification = () => {
   store.sendNotification(
     'Test Notification',
-    'This is a test notification from QuAInt2',
+    'This is a test notification from QuAInt²',
     { playSound: true, tag: 'test' }
   )
 }

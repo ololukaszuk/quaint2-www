@@ -158,7 +158,7 @@ The app is fully responsive with:
 ```nginx
 server {
     listen 443 ssl;
-    server_name quaint2.awso.one;
+    server_name quaint2.example.com;
 
     location / {
         proxy_pass http://localhost:8753;
