@@ -33,10 +33,19 @@ const pressureIndicator = computed(() => {
   <div class="h-full flex flex-col">
     <!-- Header -->
     <div class="card-header flex-shrink-0" :class="{ 'py-2 px-3': compact }">
-      <h3 class="card-title" :class="{ 'text-xs': compact }">âš¡ Recent Trades</h3>
-      <span class="text-xs text-dark-500">
-        {{ store.stats?.trades_received || 0 }} total
-      </span>
+      <h3 class="card-title" :class="{ 'text-xs': compact }">⚡ Recent Trades</h3>
+      <div class="flex items-center gap-2">
+        <span 
+          :class="[
+            'badge',
+            pressureIndicator.class === 'price-up' ? 'badge-green' : 
+            pressureIndicator.class === 'price-down' ? 'badge-red' : 'badge-gray',
+            compact ? 'text-xs py-0' : ''
+          ]"
+        >
+          {{ pressureIndicator.emoji }} {{ buySellRatio.toFixed(0) }}%
+        </span>
+      </div>
     </div>
     
     <!-- Column Headers -->

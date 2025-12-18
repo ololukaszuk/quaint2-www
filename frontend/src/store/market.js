@@ -98,6 +98,9 @@ export const useMarketStore = defineStore('market', () => {
   const volatilityNotificationsEnabled = ref(
     localStorage.getItem('btc_volatility_notifications') === 'false' ? false : true
   )
+  const aiNotificationsEnabled = ref(
+    localStorage.getItem('btc_ai_notifications') === 'false' ? false : true
+  )
   const soundEnabled = ref(
     localStorage.getItem('btc_sound_enabled') === 'false' ? false : true
   )
@@ -113,6 +116,10 @@ export const useMarketStore = defineStore('market', () => {
   
   watch(volatilityNotificationsEnabled, (val) => {
     localStorage.setItem('btc_volatility_notifications', val.toString())
+  })
+  
+  watch(aiNotificationsEnabled, (val) => {
+    localStorage.setItem('btc_ai_notifications', val.toString())
   })
   
   watch(soundEnabled, (val) => {
@@ -641,7 +648,8 @@ export const useMarketStore = defineStore('market', () => {
           const newAnalysis = data.data[0]
           
           // Check if this is a new prediction (different ID)
-          if (notificationsEnabled.value && previousLLMAnalysisId.value !== null && 
+          if (notificationsEnabled.value && aiNotificationsEnabled.value && 
+              previousLLMAnalysisId.value !== null && 
               newAnalysis.id !== previousLLMAnalysisId.value) {
             const direction = newAnalysis.prediction_direction || 'NEUTRAL'
             const directionEmoji = direction === 'BULLISH' ? '📈' : direction === 'BEARISH' ? '📉' : '➡️'
@@ -890,6 +898,10 @@ export const useMarketStore = defineStore('market', () => {
     volatilityNotificationsEnabled.value = !volatilityNotificationsEnabled.value
   }
   
+  function toggleAINotifications() {
+    aiNotificationsEnabled.value = !aiNotificationsEnabled.value
+  }
+  
   function toggleSound() {
     soundEnabled.value = !soundEnabled.value
   }
@@ -941,6 +953,7 @@ export const useMarketStore = defineStore('market', () => {
     notificationPermission,
     signalNotificationsEnabled,
     volatilityNotificationsEnabled,
+    aiNotificationsEnabled,
     soundEnabled,
     
     // Stats
@@ -966,6 +979,7 @@ export const useMarketStore = defineStore('market', () => {
     toggleNotifications,
     toggleSignalNotifications,
     toggleVolatilityNotifications,
+    toggleAINotifications,
     toggleSound,
     refreshMLData,
     sendNotification,

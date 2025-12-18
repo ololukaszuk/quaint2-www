@@ -27,8 +27,8 @@ ML_API_KEY = os.environ.get("ML_API_KEY", "")
 ML_API_VERIFY_SSL = os.environ.get("ML_API_VERIFY_SSL", "false").lower() == "true"
 
 app = FastAPI(
-    title="BTC Market Analyzer",
-    description="Real-time BTC analysis with ML-powered signals",
+    title="QuAInt2",
+    description="Real-time market analysis with AI-powered signals",
     version="2.0.0"
 )
 

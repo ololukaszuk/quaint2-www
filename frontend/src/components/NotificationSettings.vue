@@ -13,7 +13,7 @@ const handleNotificationToggle = async () => {
   if (!store.notificationsEnabled) {
     const granted = await store.requestNotificationPermission()
     if (granted) {
-      store.sendNotification('Notifications Enabled', 'You will now receive signal and volatility alerts', { playSound: true })
+      store.sendNotification('Notifications Enabled', 'You will now receive trading alerts', { playSound: true })
     }
   } else {
     store.toggleNotifications()
@@ -23,7 +23,7 @@ const handleNotificationToggle = async () => {
 const testNotification = () => {
   store.sendNotification(
     'Test Notification',
-    'This is a test notification from BTC Analyzer',
+    'This is a test notification from QuAInt2',
     { playSound: true, tag: 'test' }
   )
 }
@@ -105,6 +105,23 @@ const testNotification = () => {
             />
           </label>
           
+          <!-- AI Prediction Notifications -->
+          <label class="flex items-center justify-between p-2 rounded hover:bg-dark-800/30 cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span>🤖</span>
+              <div>
+                <div class="text-sm text-dark-300">AI Predictions</div>
+                <div class="text-xs text-dark-500">Alert when new AI prediction arrives</div>
+              </div>
+            </div>
+            <input 
+              type="checkbox" 
+              :checked="store.aiNotificationsEnabled"
+              @change="store.toggleAINotifications"
+              class="w-4 h-4 rounded bg-dark-700 border-dark-600 text-brand-500 focus:ring-brand-500"
+            />
+          </label>
+          
           <!-- Volatility Notifications -->
           <label class="flex items-center justify-between p-2 rounded hover:bg-dark-800/30 cursor-pointer">
             <div class="flex items-center gap-2">
@@ -112,7 +129,7 @@ const testNotification = () => {
               <div>
                 <div class="text-sm text-dark-300">High Volatility</div>
                 <div class="text-xs text-dark-500">
-                  Alert when price moves ≥{{ store.config?.notifications?.volatility_threshold || 0.5 }}% in 1 second
+                  Alert when price moves ≥{{ store.config?.notifications?.volatility_threshold || 0.5 }}% within 1 minute
                 </div>
               </div>
             </div>

@@ -88,7 +88,7 @@ onMounted(() => {
   <div class="h-full flex flex-col">
     <!-- Header -->
     <div class="card-header flex-shrink-0" :class="{ 'py-2 px-3': compact }">
-      <h3 class="card-title" :class="{ 'text-xs': compact }">ðŸ“ˆ Order Book</h3>
+      <h3 class="card-title" :class="{ 'text-xs': compact }">📈 Order Book</h3>
       <div class="flex items-center gap-2">
         <span 
           :class="[
