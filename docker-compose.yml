@@ -1,16 +1,27 @@
 version: '3.8'
 
 services:
-  binance-realtime:
+  btc-analyzer:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "${API_PORT:-8753}:8753"
     environment:
-      - BINANCE_SYMBOL=${BINANCE_SYMBOL:-BTCUSDT}
       - API_PORT=8753
-      - REFRESH_RATE=${REFRESH_RATE:-10}
+      - ML_API_URL=${ML_API_URL:-https://192.168.100.14:8448}
+      - ML_API_KEY=${ML_API_KEY}
+      - ML_API_VERIFY_SSL=${ML_API_VERIFY_SSL:-false}
+      - MARKET_ANALYSIS_POLL_INTERVAL=${MARKET_ANALYSIS_POLL_INTERVAL:-30000}
+      - LLM_ANALYSIS_POLL_INTERVAL=${LLM_ANALYSIS_POLL_INTERVAL:-60000}
+      - MARKET_SIGNALS_POLL_INTERVAL=${MARKET_SIGNALS_POLL_INTERVAL:-15000}
+      - ENABLE_BROWSER_NOTIFICATIONS=${ENABLE_BROWSER_NOTIFICATIONS:-true}
+      - ENABLE_SOUND_NOTIFICATIONS=${ENABLE_SOUND_NOTIFICATIONS:-true}
+      - VOLATILITY_ALERT_THRESHOLD=${VOLATILITY_ALERT_THRESHOLD:-0.5}
+      - DEFAULT_CHART_INTERVAL=${DEFAULT_CHART_INTERVAL:-1m}
+      - MAX_CANDLES=${MAX_CANDLES:-500}
+      - MAX_TRADES=${MAX_TRADES:-100}
+      - MAX_ORDERBOOK_LEVELS=${MAX_ORDERBOOK_LEVELS:-20}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8753/api/health')"]
       interval: 30s
@@ -18,4 +29,3 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
-

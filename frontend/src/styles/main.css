@@ -12,21 +12,30 @@
     @apply bg-dark-950 text-dark-100;
   }
   
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-dark-900;
+    @apply bg-transparent;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-dark-600 rounded-full;
+    @apply bg-dark-700 rounded-full;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-dark-500;
+    @apply bg-dark-600;
+  }
+  
+  /* Mobile: hide scrollbar but keep functionality */
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 2px;
+      height: 2px;
+    }
   }
 }
 
@@ -103,6 +112,10 @@
     @apply bg-dark-700 text-dark-300;
   }
   
+  .badge-brand {
+    @apply bg-brand-500/20 text-brand-400;
+  }
+  
   .price-up {
     @apply text-green-400;
   }
@@ -138,6 +151,27 @@
   
   .tooltip.show {
     @apply opacity-100;
+  }
+  
+  /* Signal type badges */
+  .signal-strong-buy {
+    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+  }
+  
+  .signal-weak-buy {
+    @apply bg-green-500/10 text-green-400/80;
+  }
+  
+  .signal-strong-sell {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+  
+  .signal-weak-sell {
+    @apply bg-red-500/10 text-red-400/80;
+  }
+  
+  .signal-hold {
+    @apply bg-yellow-500/10 text-yellow-400;
   }
 }
 
@@ -180,5 +214,34 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  
+  /* Safe area for mobile devices with notches */
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  .card {
+    @apply rounded-lg;
+  }
+  
+  .card-header {
+    @apply px-3 py-2;
+  }
+  
+  .card-body {
+    @apply p-3;
+  }
+}
+
+/* Prevent pull-to-refresh on mobile when scrolling content */
+@media (max-width: 1024px) {
+  body {
+    overscroll-behavior-y: contain;
   }
 }

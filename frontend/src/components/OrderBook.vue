@@ -3,19 +3,24 @@ import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useMarketStore } from '../store/market'
 import { formatPrice, formatQuantity, getImbalanceIndicator } from '../utils/format'
 
+const props = defineProps({
+  compact: { type: Boolean, default: false }
+})
+
 const store = useMarketStore()
 const asksContainer = ref(null)
 const bidsContainer = ref(null)
 
+const displayDepth = computed(() => props.compact ? 8 : store.orderbookDepth)
+
 const bids = computed(() => {
   const data = store.orderbook?.bids || []
-  return data.slice(0, store.orderbookDepth)
+  return data.slice(0, displayDepth.value)
 })
 
 const asks = computed(() => {
   const data = store.orderbook?.asks || []
-  // Sort asks: highest price at top, lowest at bottom
-  return data.slice(0, store.orderbookDepth).sort((a, b) => b.price - a.price)
+  return data.slice(0, displayDepth.value).sort((a, b) => b.price - a.price)
 })
 
 const maxVolume = computed(() => {
@@ -32,21 +37,18 @@ function getBarWidth(quantity) {
   return (quantity / maxVolume.value) * 100
 }
 
-// Scroll asks to bottom (lowest ask visible) when data loads
 function scrollAsksToBottom() {
   if (asksContainer.value) {
     asksContainer.value.scrollTop = asksContainer.value.scrollHeight
   }
 }
 
-// Scroll bids to top (highest bid visible) - this is default behavior
 function scrollBidsToTop() {
   if (bidsContainer.value) {
     bidsContainer.value.scrollTop = 0
   }
 }
 
-// Track symbol changes to re-scroll
 let currentSymbol = ''
 
 watch(
@@ -57,7 +59,6 @@ watch(
       currentSymbol = sym
     }
     
-    // Scroll when we have data and symbol changed (or initial load)
     if (askLen > 0 && bidLen > 0 && symbolChanged) {
       await nextTick()
       setTimeout(() => {
@@ -69,7 +70,6 @@ watch(
   { immediate: true }
 )
 
-// Initial scroll on mount
 onMounted(() => {
   setTimeout(() => {
     scrollAsksToBottom()
@@ -81,25 +81,35 @@ onMounted(() => {
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
-    <div class="card-header flex-shrink-0">
-      <h3 class="card-title">📈 Order Book</h3>
+    <div class="card-header flex-shrink-0" :class="{ 'py-2 px-3': compact }">
+      <h3 class="card-title" :class="{ 'text-xs': compact }">📈 Order Book</h3>
       <div class="flex items-center gap-2">
-        <span :class="['badge', imbalanceInfo.class === 'price-up' ? 'badge-green' : imbalanceInfo.class === 'price-down' ? 'badge-red' : 'badge-gray']">
+        <span 
+          :class="[
+            'badge', 
+            imbalanceInfo.class === 'price-up' ? 'badge-green' : 
+            imbalanceInfo.class === 'price-down' ? 'badge-red' : 'badge-gray',
+            compact ? 'text-xs py-0' : ''
+          ]"
+        >
           {{ imbalanceInfo.emoji }} {{ store.orderbookImbalance.toFixed(1) }}%
         </span>
       </div>
     </div>
     
     <!-- Column Headers -->
-    <div class="px-3 py-2 grid grid-cols-3 gap-2 text-xs text-dark-400 border-b border-dark-700/50 flex-shrink-0">
+    <div 
+      class="px-3 py-1.5 grid gap-2 text-xs text-dark-500 border-b border-dark-700/50 flex-shrink-0"
+      :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
+    >
       <span class="text-left">Price</span>
       <span class="text-right">Qty</span>
-      <span class="text-right">Total</span>
+      <span v-if="!compact" class="text-right">Total</span>
     </div>
     
-    <!-- Two-panel layout using CSS Grid for guaranteed 50/50 split -->
+    <!-- Two-panel layout -->
     <div class="flex-1 grid grid-rows-[1fr_auto_1fr] min-h-0 overflow-hidden">
-      <!-- Asks Container (top half) - scrolled to bottom -->
+      <!-- Asks Container (top half) -->
       <div 
         ref="asksContainer" 
         class="overflow-y-auto overflow-x-hidden border-b border-dark-700/30 min-h-0"
@@ -107,7 +117,8 @@ onMounted(() => {
         <div 
           v-for="(ask, i) in asks" 
           :key="'ask-' + i"
-          class="relative px-3 py-1 grid grid-cols-3 gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+          class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+          :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
         >
           <!-- Background bar (from right) -->
           <div 
@@ -116,9 +127,11 @@ onMounted(() => {
           ></div>
           
           <!-- Content -->
-          <span class="relative text-red-400">{{ formatPrice(ask.price) }}</span>
-          <span class="relative text-right text-dark-300">{{ formatQuantity(ask.quantity) }}</span>
-          <span class="relative text-right text-dark-400">{{ formatQuantity(ask.price * ask.quantity) }}</span>
+          <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
+          <span class="relative text-right text-dark-300 truncate">{{ formatQuantity(ask.quantity) }}</span>
+          <span v-if="!compact" class="relative text-right text-dark-400 truncate">
+            {{ formatQuantity(ask.price * ask.quantity) }}
+          </span>
         </div>
       </div>
       
@@ -128,7 +141,7 @@ onMounted(() => {
         <span class="text-dark-500">({{ (store.spreadPercent * 100).toFixed(3) }}%)</span>
       </div>
       
-      <!-- Bids Container (bottom half) - scrolled to top -->
+      <!-- Bids Container (bottom half) -->
       <div 
         ref="bidsContainer" 
         class="overflow-y-auto overflow-x-hidden min-h-0"
@@ -136,7 +149,8 @@ onMounted(() => {
         <div 
           v-for="(bid, i) in bids" 
           :key="'bid-' + i"
-          class="relative px-3 py-1 grid grid-cols-3 gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+          class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+          :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
         >
           <!-- Background bar (from right) -->
           <div 
@@ -145,9 +159,11 @@ onMounted(() => {
           ></div>
           
           <!-- Content -->
-          <span class="relative text-green-400">{{ formatPrice(bid.price) }}</span>
-          <span class="relative text-right text-dark-300">{{ formatQuantity(bid.quantity) }}</span>
-          <span class="relative text-right text-dark-400">{{ formatQuantity(bid.price * bid.quantity) }}</span>
+          <span class="relative text-green-400 truncate">{{ formatPrice(bid.price) }}</span>
+          <span class="relative text-right text-dark-300 truncate">{{ formatQuantity(bid.quantity) }}</span>
+          <span v-if="!compact" class="relative text-right text-dark-400 truncate">
+            {{ formatQuantity(bid.price * bid.quantity) }}
+          </span>
         </div>
       </div>
     </div>

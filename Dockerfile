@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Binance Real-Time GUI
+# Multi-stage Dockerfile for BTC Market Analyzer
 # Stage 1: Build frontend
 FROM node:20-alpine AS frontend-build
 

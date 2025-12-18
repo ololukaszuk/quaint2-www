@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, shallowRef } from 'vue'
+import { ref, computed, shallowRef, watch } from 'vue'
 
 export const useMarketStore = defineStore('market', () => {
   // ============ Configuration ============
@@ -7,22 +7,33 @@ export const useMarketStore = defineStore('market', () => {
     binance_ws_base: 'wss://stream.binance.com:9443',
     binance_rest_base: 'https://api.binance.com/api/v3',
     supported_intervals: ['1s', '1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d'],
-    popular_symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'SOLUSDT'],
+    symbol: 'BTCUSDT',
     max_candles: 500,
-    max_trades: 100
+    max_trades: 100,
+    ml_api_enabled: false,
+    poll_intervals: {
+      market_analysis: 30000,
+      llm_analysis: 60000,
+      market_signals: 15000,
+    },
+    notifications: {
+      enabled: true,
+      sound_enabled: true,
+      volatility_threshold: 0.5,
+    }
   })
   
   // ============ Connection State ============
   const isConnected = ref(false)
   const isConnecting = ref(false)
   const connectionError = ref(null)
+  const mlApiStatus = ref('unknown') // 'unknown', 'connected', 'error', 'not_configured'
   
   // ============ Market Parameters ============
   const symbol = ref('BTCUSDT')
   const interval = ref('1m')
-  const refreshRate = ref(10)
   
-  // ============ Market Data ============
+  // ============ Binance Market Data ============
   const ticker = ref({
     bid_price: 0,
     bid_qty: 0,
@@ -46,7 +57,6 @@ export const useMarketStore = defineStore('market', () => {
     is_closed: false
   })
   
-  // Use shallowRef for large arrays to improve performance
   const klineHistory = shallowRef([])
   const trades = shallowRef([])
   const orderbook = ref({
@@ -55,12 +65,30 @@ export const useMarketStore = defineStore('market', () => {
     imbalance: 0
   })
   
+  // ============ ML API Data ============
+  const marketAnalysis = ref(null)
+  const llmAnalysis = ref(null)
+  const marketSignals = shallowRef([])
+  const latestSignal = ref(null)
+  
+  // Track signal changes for notifications
+  const previousSignalType = ref(null)
+  const previousPrice = ref(null)
+  
   // ============ UI State ============
   const showOrderBook = ref(true)
   const showTrades = ref(true)
   const showVolume = ref(true)
   const orderbookDepth = ref(10)
   const tradesCount = ref(15)
+  const activeTab = ref('analysis') // 'analysis', 'signals', 'llm'
+  
+  // ============ Notification Settings ============
+  const notificationsEnabled = ref(false)
+  const notificationPermission = ref('default')
+  const signalNotificationsEnabled = ref(true)
+  const volatilityNotificationsEnabled = ref(true)
+  const soundEnabled = ref(true)
   
   // ============ Statistics ============
   const stats = ref({
@@ -69,7 +97,8 @@ export const useMarketStore = defineStore('market', () => {
     orderbook_updates: 0,
     messages_per_second: 0,
     connected_at: null,
-    last_update: null
+    last_update: null,
+    last_ml_update: null
   })
   
   // ============ WebSocket Management ============
@@ -77,14 +106,15 @@ export const useMarketStore = defineStore('market', () => {
   let reconnectTimer = null
   let reconnectAttempts = 0
   const maxReconnectAttempts = 10
-  
-  // Connection ID to prevent race conditions
   let connectionId = 0
   let isManualDisconnect = false
-  
-  // Message rate tracking
   let messageCount = 0
   let rateInterval = null
+  
+  // ML API polling timers
+  let marketAnalysisPollTimer = null
+  let llmAnalysisPollTimer = null
+  let marketSignalsPollTimer = null
   
   // ============ Computed Properties ============
   const lastPrice = computed(() => kline.value?.close || ticker.value?.bid_price || 0)
@@ -114,8 +144,141 @@ export const useMarketStore = defineStore('market', () => {
   
   const orderbookImbalance = computed(() => orderbook.value?.imbalance || 0)
   
-  // Track if initial config has been loaded
+  // Signal-related computed properties
+  const currentSignal = computed(() => {
+    if (!marketAnalysis.value) return null
+    return {
+      type: marketAnalysis.value.signal_type,
+      direction: marketAnalysis.value.signal_direction,
+      confidence: marketAnalysis.value.signal_confidence,
+      summary: marketAnalysis.value.summary,
+      action: marketAnalysis.value.action_recommendation,
+    }
+  })
+  
+  const signalColor = computed(() => {
+    const type = currentSignal.value?.type
+    if (!type) return 'gray'
+    if (type.includes('BUY')) return 'green'
+    if (type.includes('SELL')) return 'red'
+    return 'yellow'
+  })
+  
+  // Track config loaded state
   let configLoaded = false
+  
+  // ============ Notification Functions ============
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      console.warn('Browser does not support notifications')
+      return false
+    }
+    
+    const permission = await Notification.requestPermission()
+    notificationPermission.value = permission
+    notificationsEnabled.value = permission === 'granted'
+    return permission === 'granted'
+  }
+  
+  function sendNotification(title, body, options = {}) {
+    if (!notificationsEnabled.value || notificationPermission.value !== 'granted') {
+      return
+    }
+    
+    try {
+      const notification = new Notification(title, {
+        body,
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: options.tag || 'btc-analyzer',
+        renotify: options.renotify || false,
+        ...options
+      })
+      
+      if (soundEnabled.value && options.playSound !== false) {
+        playNotificationSound(options.soundType || 'signal')
+      }
+      
+      // Auto-close after 10 seconds
+      setTimeout(() => notification.close(), 10000)
+    } catch (e) {
+      console.error('Failed to send notification:', e)
+    }
+  }
+  
+  function playNotificationSound(type = 'signal') {
+    if (!soundEnabled.value) return
+    
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      // Different sounds for different notification types
+      if (type === 'buy') {
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime) // A5
+        oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1) // C#6
+      } else if (type === 'sell') {
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime) // A4
+        oscillator.frequency.setValueAtTime(330, audioContext.currentTime + 0.1) // E4
+      } else if (type === 'volatility') {
+        oscillator.frequency.setValueAtTime(660, audioContext.currentTime) // E5
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.05) // A5
+        oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.1) // E5
+      } else {
+        oscillator.frequency.setValueAtTime(660, audioContext.currentTime) // E5
+      }
+      
+      oscillator.type = 'sine'
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
+      
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 0.2)
+    } catch (e) {
+      console.warn('Could not play notification sound:', e)
+    }
+  }
+  
+  function checkVolatility() {
+    if (!volatilityNotificationsEnabled.value || !previousPrice.value || !lastPrice.value) {
+      previousPrice.value = lastPrice.value
+      return
+    }
+    
+    const changePercent = Math.abs((lastPrice.value - previousPrice.value) / previousPrice.value * 100)
+    const threshold = config.value.notifications?.volatility_threshold || 0.5
+    
+    if (changePercent >= threshold) {
+      const direction = lastPrice.value > previousPrice.value ? '📈 UP' : '📉 DOWN'
+      sendNotification(
+        `High Volatility Alert`,
+        `BTC moved ${direction} ${changePercent.toFixed(2)}% ($${lastPrice.value.toFixed(2)})`,
+        { tag: 'volatility', soundType: 'volatility' }
+      )
+    }
+    
+    previousPrice.value = lastPrice.value
+  }
+  
+  function checkSignalChange(newSignal) {
+    if (!signalNotificationsEnabled.value || !newSignal) return
+    
+    const newType = newSignal.signal_type
+    if (previousSignalType.value && previousSignalType.value !== newType) {
+      const soundType = newType.includes('BUY') ? 'buy' : newType.includes('SELL') ? 'sell' : 'signal'
+      sendNotification(
+        `Signal Changed: ${newType}`,
+        `${newSignal.summary || `Signal changed from ${previousSignalType.value} to ${newType}`}`,
+        { tag: 'signal', soundType, renotify: true }
+      )
+    }
+    
+    previousSignalType.value = newType
+  }
   
   // ============ Binance WebSocket Connection ============
   async function connect() {
@@ -130,10 +293,6 @@ export const useMarketStore = defineStore('market', () => {
         if (response.ok) {
           const serverConfig = await response.json()
           Object.assign(config.value, serverConfig)
-          // Only set default symbol on initial load
-          if (serverConfig.default_symbol) {
-            symbol.value = serverConfig.default_symbol
-          }
           configLoaded = true
         }
       } catch (e) {
@@ -147,6 +306,11 @@ export const useMarketStore = defineStore('market', () => {
     
     // Connect to Binance WebSocket
     connectWebSocket()
+    
+    // Start ML API polling if enabled
+    if (config.value.ml_api_enabled) {
+      startMLPolling()
+    }
   }
   
   async function fetchInitialData() {
@@ -222,7 +386,6 @@ export const useMarketStore = defineStore('market', () => {
   }
   
   function connectWebSocket() {
-    // Increment connection ID to invalidate any pending operations
     const thisConnectionId = ++connectionId
     
     isConnecting.value = true
@@ -245,7 +408,6 @@ export const useMarketStore = defineStore('market', () => {
       ws = new WebSocket(wsUrl)
       
       ws.onopen = () => {
-        // Check if this connection is still valid
         if (thisConnectionId !== connectionId) {
           console.log(`[${thisConnectionId}] Connection invalidated, closing`)
           ws.close()
@@ -258,12 +420,10 @@ export const useMarketStore = defineStore('market', () => {
         reconnectAttempts = 0
         stats.value.connected_at = new Date().toISOString()
         
-        // Start message rate tracking
         startRateTracking()
       }
       
       ws.onmessage = (event) => {
-        // Ignore messages from old connections
         if (thisConnectionId !== connectionId) return
         
         try {
@@ -282,23 +442,24 @@ export const useMarketStore = defineStore('market', () => {
       }
       
       ws.onclose = (event) => {
-        // Ignore close events from old connections or manual disconnects
         if (thisConnectionId !== connectionId || isManualDisconnect) {
-          console.log(`[${thisConnectionId}] Ignoring close event (invalidated or manual)`)
           return
         }
         
         console.log(`[${thisConnectionId}] WebSocket closed:`, event.code, event.reason)
         isConnected.value = false
         isConnecting.value = false
-        stopRateTracking()
         
-        // Auto-reconnect only if not manually disconnected
+        // Attempt reconnection
         if (reconnectAttempts < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000)
+          console.log(`[${thisConnectionId}] Reconnecting in ${delay}ms...`)
           reconnectAttempts++
-          console.log(`[${thisConnectionId}] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`)
-          reconnectTimer = setTimeout(connectWebSocket, delay)
+          reconnectTimer = setTimeout(() => {
+            if (!isManualDisconnect) {
+              connectWebSocket()
+            }
+          }, delay)
         } else {
           connectionError.value = 'Max reconnection attempts reached'
         }
@@ -316,6 +477,7 @@ export const useMarketStore = defineStore('market', () => {
     clearTimeout(reconnectTimer)
     reconnectTimer = null
     stopRateTracking()
+    stopMLPolling()
     
     if (ws) {
       ws.close()
@@ -331,6 +493,9 @@ export const useMarketStore = defineStore('market', () => {
     rateInterval = setInterval(() => {
       stats.value.messages_per_second = messageCount
       messageCount = 0
+      
+      // Check volatility every second
+      checkVolatility()
     }, 1000)
   }
   
@@ -338,6 +503,101 @@ export const useMarketStore = defineStore('market', () => {
     if (rateInterval) {
       clearInterval(rateInterval)
       rateInterval = null
+    }
+  }
+  
+  // ============ ML API Polling ============
+  function startMLPolling() {
+    // Fetch immediately
+    fetchMarketAnalysis()
+    fetchLLMAnalysis()
+    fetchMarketSignals()
+    
+    // Set up polling intervals
+    const intervals = config.value.poll_intervals
+    
+    marketAnalysisPollTimer = setInterval(
+      fetchMarketAnalysis, 
+      intervals.market_analysis
+    )
+    
+    llmAnalysisPollTimer = setInterval(
+      fetchLLMAnalysis, 
+      intervals.llm_analysis
+    )
+    
+    marketSignalsPollTimer = setInterval(
+      fetchMarketSignals, 
+      intervals.market_signals
+    )
+  }
+  
+  function stopMLPolling() {
+    if (marketAnalysisPollTimer) {
+      clearInterval(marketAnalysisPollTimer)
+      marketAnalysisPollTimer = null
+    }
+    if (llmAnalysisPollTimer) {
+      clearInterval(llmAnalysisPollTimer)
+      llmAnalysisPollTimer = null
+    }
+    if (marketSignalsPollTimer) {
+      clearInterval(marketSignalsPollTimer)
+      marketSignalsPollTimer = null
+    }
+  }
+  
+  async function fetchMarketAnalysis() {
+    try {
+      const response = await fetch('/api/ml/market-analysis?limit=1')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data && data.data.length > 0) {
+          const newAnalysis = data.data[0]
+          checkSignalChange(newAnalysis)
+          marketAnalysis.value = newAnalysis
+          mlApiStatus.value = 'connected'
+          stats.value.last_ml_update = new Date().toISOString()
+        }
+      } else if (response.status === 503) {
+        mlApiStatus.value = 'not_configured'
+      } else {
+        mlApiStatus.value = 'error'
+      }
+    } catch (e) {
+      console.error('Failed to fetch market analysis:', e)
+      mlApiStatus.value = 'error'
+    }
+  }
+  
+  async function fetchLLMAnalysis() {
+    try {
+      const response = await fetch('/api/ml/llm-analysis?limit=5')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data && data.data.length > 0) {
+          llmAnalysis.value = data.data[0]
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch LLM analysis:', e)
+    }
+  }
+  
+  async function fetchMarketSignals() {
+    try {
+      const response = await fetch('/api/ml/market-signals?limit=20')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          marketSignals.value = data.data
+          if (data.data.length > 0) {
+            latestSignal.value = data.data[0]
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch market signals:', e)
     }
   }
   
@@ -377,7 +637,6 @@ export const useMarketStore = defineStore('market', () => {
       is_closed: k.x
     }
     
-    // Update history if candle closed
     if (k.x) {
       const newHistory = [...klineHistory.value]
       const existingIndex = newHistory.findIndex(c => c.time === k.t)
@@ -433,7 +692,6 @@ export const useMarketStore = defineStore('market', () => {
   }
   
   function handleDepth(data) {
-    // Update bids
     if (data.b && data.b.length > 0) {
       const bidsMap = new Map(
         orderbook.value.bids.map(b => [b.price, b.quantity])
@@ -456,7 +714,6 @@ export const useMarketStore = defineStore('market', () => {
         .slice(0, 20)
     }
     
-    // Update asks
     if (data.a && data.a.length > 0) {
       const asksMap = new Map(
         orderbook.value.asks.map(a => [a.price, a.quantity])
@@ -497,30 +754,6 @@ export const useMarketStore = defineStore('market', () => {
   }
   
   // ============ Actions ============
-  async function changeSymbol(newSymbol) {
-    const upper = newSymbol.toUpperCase()
-    if (upper === symbol.value) return
-    
-    console.log(`Changing symbol from ${symbol.value} to ${upper}`)
-    symbol.value = upper
-    
-    // Reset data
-    klineHistory.value = []
-    trades.value = []
-    orderbook.value = { bids: [], asks: [], imbalance: 0 }
-    ticker.value = { bid_price: 0, bid_qty: 0, ask_price: 0, ask_qty: 0, spread: 0, spread_pct: 0 }
-    kline.value = { time: 0, open: 0, high: 0, low: 0, close: 0, volume: 0, quote_volume: 0, trades: 0, taker_buy_volume: 0, taker_buy_quote_volume: 0, is_closed: false }
-    stats.value = { trades_received: 0, klines_received: 0, orderbook_updates: 0, messages_per_second: 0, connected_at: null, last_update: null }
-    
-    // Disconnect and reconnect
-    disconnect()
-    reconnectAttempts = 0
-    
-    // Small delay to ensure clean disconnect
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await connect()
-  }
-  
   async function changeInterval(newInterval) {
     if (newInterval === interval.value) return
     
@@ -528,18 +761,42 @@ export const useMarketStore = defineStore('market', () => {
     interval.value = newInterval
     klineHistory.value = []
     
-    // Disconnect and reconnect
     disconnect()
     reconnectAttempts = 0
     
-    // Small delay to ensure clean disconnect
     await new Promise(resolve => setTimeout(resolve, 100))
     await connect()
   }
-  function changeRefreshRate(newRate) {
-    refreshRate.value = newRate
-    // Note: With direct Binance connection, we get data as fast as Binance sends it
-    // This could be used for throttling display updates if needed
+  
+  function setActiveTab(tab) {
+    activeTab.value = tab
+  }
+  
+  function toggleNotifications() {
+    if (!notificationsEnabled.value) {
+      requestNotificationPermission()
+    } else {
+      notificationsEnabled.value = false
+    }
+  }
+  
+  function toggleSignalNotifications() {
+    signalNotificationsEnabled.value = !signalNotificationsEnabled.value
+  }
+  
+  function toggleVolatilityNotifications() {
+    volatilityNotificationsEnabled.value = !volatilityNotificationsEnabled.value
+  }
+  
+  function toggleSound() {
+    soundEnabled.value = !soundEnabled.value
+  }
+  
+  // Force refresh ML data
+  function refreshMLData() {
+    fetchMarketAnalysis()
+    fetchLLMAnalysis()
+    fetchMarketSignals()
   }
   
   return {
@@ -550,18 +807,24 @@ export const useMarketStore = defineStore('market', () => {
     isConnected,
     isConnecting,
     connectionError,
+    mlApiStatus,
     
     // Market parameters
     symbol,
     interval,
-    refreshRate,
     
-    // Market data
+    // Binance data
     ticker,
     kline,
     klineHistory,
     trades,
     orderbook,
+    
+    // ML API data
+    marketAnalysis,
+    llmAnalysis,
+    marketSignals,
+    latestSignal,
     
     // UI state
     showOrderBook,
@@ -569,6 +832,14 @@ export const useMarketStore = defineStore('market', () => {
     showVolume,
     orderbookDepth,
     tradesCount,
+    activeTab,
+    
+    // Notification settings
+    notificationsEnabled,
+    notificationPermission,
+    signalNotificationsEnabled,
+    volatilityNotificationsEnabled,
+    soundEnabled,
     
     // Stats
     stats,
@@ -581,12 +852,21 @@ export const useMarketStore = defineStore('market', () => {
     spreadPercent,
     liquidityRating,
     orderbookImbalance,
+    currentSignal,
+    signalColor,
     
     // Actions
     connect,
     disconnect,
-    changeSymbol,
     changeInterval,
-    changeRefreshRate
+    setActiveTab,
+    requestNotificationPermission,
+    toggleNotifications,
+    toggleSignalNotifications,
+    toggleVolatilityNotifications,
+    toggleSound,
+    refreshMLData,
+    sendNotification,
+    playNotificationSound,
   }
 })

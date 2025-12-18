@@ -35,7 +35,7 @@ export default {
         }
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'monospace'],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -51,6 +51,9 @@ export default {
           '0%': { backgroundColor: 'rgba(239, 68, 68, 0.3)' },
           '100%': { backgroundColor: 'transparent' }
         }
+      },
+      screens: {
+        'xs': '375px',
       }
     },
   },

@@ -8,17 +8,24 @@ const store = useMarketStore()
 
 const chartContainer = ref(null)
 const legendData = ref(null)
+const isMobile = ref(false)
 
 let chart = null
 let candleSeries = null
 let volumeSeries = null
 let resizeObserver = null
 
-// Chart configuration
-const chartOptions = {
+// Check if mobile
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+// Chart configuration with mobile-friendly options
+const getChartOptions = () => ({
   layout: {
     background: { type: 'solid', color: 'transparent' },
-    textColor: '#94a3b8'
+    textColor: '#94a3b8',
+    fontSize: isMobile.value ? 10 : 12
   },
   grid: {
     vertLines: { color: '#1e293b' },
@@ -40,17 +47,35 @@ const chartOptions = {
     scaleMargins: {
       top: 0.1,
       bottom: 0.2
-    }
+    },
+    // Enable touch-friendly price scale on mobile
+    entireTextOnly: isMobile.value
   },
   timeScale: {
     borderColor: '#334155',
     timeVisible: true,
-    secondsVisible: false
+    secondsVisible: false,
+    // Reduce tick marks on mobile
+    tickMarkFormatter: isMobile.value ? (time) => {
+      const date = new Date(time * 1000)
+      return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+    } : undefined
   },
   handleScroll: {
-    vertTouchDrag: false
+    vertTouchDrag: false,
+    horzTouchDrag: true,
+    mouseWheel: true,
+    pressedMouseMove: true,
+  },
+  handleScale: {
+    axisPressedMouseMove: {
+      time: true,
+      price: true,
+    },
+    pinch: true,
+    mouseWheel: true,
   }
-}
+})
 
 const candleSeriesOptions = {
   upColor: '#22c55e',
@@ -106,8 +131,10 @@ function transformVolume(history) {
 function initChart() {
   if (!chartContainer.value) return
   
+  checkMobile()
+  
   chart = createChart(chartContainer.value, {
-    ...chartOptions,
+    ...getChartOptions(),
     width: chartContainer.value.clientWidth,
     height: chartContainer.value.clientHeight
   })
@@ -127,26 +154,28 @@ function initChart() {
     borderVisible: false
   })
   
-  // Subscribe to crosshair move
-  chart.subscribeCrosshairMove(param => {
-    if (param.time) {
-      const candleData = param.seriesData.get(candleSeries)
-      const volumeData = param.seriesData.get(volumeSeries)
-      
-      if (candleData) {
-        legendData.value = {
-          time: new Date(param.time * 1000).toLocaleString(),
-          open: candleData.open,
-          high: candleData.high,
-          low: candleData.low,
-          close: candleData.close,
-          volume: volumeData?.value
+  // Subscribe to crosshair move (desktop only for performance)
+  if (!isMobile.value) {
+    chart.subscribeCrosshairMove(param => {
+      if (param.time) {
+        const candleData = param.seriesData.get(candleSeries)
+        const volumeData = param.seriesData.get(volumeSeries)
+        
+        if (candleData) {
+          legendData.value = {
+            time: new Date(param.time * 1000).toLocaleString(),
+            open: candleData.open,
+            high: candleData.high,
+            low: candleData.low,
+            close: candleData.close,
+            volume: volumeData?.value
+          }
         }
+      } else {
+        legendData.value = null
       }
-    } else {
-      legendData.value = null
-    }
-  })
+    })
+  }
   
   // Set up resize observer
   resizeObserver = new ResizeObserver(entries => {
@@ -171,7 +200,7 @@ function updateChart() {
     volumeSeries.setData(volumes)
   }
   
-  // Update current candle if exists
+  // Update current candle
   if (store.kline && store.kline.time) {
     const currentCandle = {
       time: Math.floor(store.kline.time / 1000),
@@ -228,9 +257,9 @@ watch(
   { deep: true }
 )
 
-// Reset chart on symbol/interval change
+// Reset chart on interval change
 watch(
-  () => [store.symbol, store.interval],
+  () => store.interval,
   () => {
     if (candleSeries && volumeSeries) {
       candleSeries.setData([])
@@ -239,12 +268,25 @@ watch(
   }
 )
 
+// Handle window resize for mobile detection
+const handleResize = () => {
+  const wasMobile = isMobile.value
+  checkMobile()
+  
+  // Reinitialize chart if mobile state changed
+  if (wasMobile !== isMobile.value && chart) {
+    chart.applyOptions(getChartOptions())
+  }
+}
+
 onMounted(() => {
   initChart()
   updateChart()
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
   if (resizeObserver) {
     resizeObserver.disconnect()
   }
@@ -259,22 +301,39 @@ onUnmounted(() => {
   <div class="h-full flex flex-col">
     <!-- Chart Header -->
     <div class="card-header">
-      <div class="flex items-center gap-3">
-        <h3 class="card-title">{{ store.symbol }} Chart</h3>
-        <span class="badge badge-gray">{{ store.interval }}</span>
+      <div class="flex items-center gap-2">
+        <h3 class="card-title">BTCUSDT</h3>
+        <span class="badge badge-gray text-xs">{{ store.interval }}</span>
       </div>
       
-      <!-- Legend (shown on hover) -->
-      <div v-if="legendData" class="flex items-center gap-4 text-xs mono">
+      <!-- Legend (shown on hover, desktop only) -->
+      <div v-if="legendData && !isMobile" class="hidden sm:flex items-center gap-3 text-xs mono">
         <span>O: <span :class="legendData.close >= legendData.open ? 'price-up' : 'price-down'">{{ formatCurrency(legendData.open) }}</span></span>
         <span>H: <span class="price-up">{{ formatCurrency(legendData.high) }}</span></span>
         <span>L: <span class="price-down">{{ formatCurrency(legendData.low) }}</span></span>
         <span>C: <span :class="legendData.close >= legendData.open ? 'price-up' : 'price-down'">{{ formatCurrency(legendData.close) }}</span></span>
-        <span v-if="legendData.volume">V: {{ formatQuantity(legendData.volume) }}</span>
+        <span v-if="legendData.volume" class="text-dark-400">V: {{ formatQuantity(legendData.volume) }}</span>
+      </div>
+      
+      <!-- Mobile: Current Price -->
+      <div v-else class="sm:hidden flex items-center gap-2">
+        <span 
+          class="font-mono font-bold"
+          :class="store.isPriceUp ? 'text-green-400' : 'text-red-400'"
+        >
+          ${{ store.lastPrice?.toLocaleString('en-US', { maximumFractionDigits: 2 }) }}
+        </span>
       </div>
     </div>
     
     <!-- Chart Container -->
-    <div ref="chartContainer" class="flex-1 min-h-0"></div>
+    <div ref="chartContainer" class="flex-1 min-h-0 touch-pan-y"></div>
   </div>
 </template>
+
+<style scoped>
+/* Ensure touch events work properly on mobile */
+.touch-pan-y {
+  touch-action: pan-y pinch-zoom;
+}
+</style>
