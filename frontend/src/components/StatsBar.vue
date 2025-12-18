@@ -14,25 +14,6 @@ const formatTime = (isoString) => {
     hour12: false
   })
 }
-
-const uptime = computed(() => {
-  if (!store.stats?.connected_at) return '-'
-  const start = new Date(store.stats.connected_at)
-  const now = new Date()
-  const diff = Math.floor((now - start) / 1000)
-  
-  const hours = Math.floor(diff / 3600)
-  const minutes = Math.floor((diff % 3600) / 60)
-  const seconds = diff % 60
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`
-  }
-  return `${seconds}s`
-})
 </script>
 
 <template>
@@ -65,9 +46,6 @@ const uptime = computed(() => {
         </span>
         <span class="hidden lg:inline">
           Trades: <span class="text-dark-400 mono">{{ store.stats?.trades_received || 0 }}</span>
-        </span>
-        <span class="hidden md:inline">
-          Uptime: <span class="text-dark-400 mono">{{ uptime }}</span>
         </span>
       </div>
       

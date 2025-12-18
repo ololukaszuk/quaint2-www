@@ -8,12 +8,20 @@ const props = defineProps({
 })
 
 const store = useMarketStore()
-const expandedSection = ref('trends')
+const expandedSections = ref({
+  smc: true,       // ← START OPEN
+  trends: true,    // ← START OPEN
+  levels: false,
+  pivots: false,
+  momentum: false,
+  warnings: false,
+  factors: false
+})
 
 const analysis = computed(() => store.marketAnalysis)
 
 const toggleSection = (section) => {
-  expandedSection.value = expandedSection.value === section ? null : section
+  expandedSections.value[section] = !expandedSections.value[section]
 }
 
 const trendIcon = (direction) => {
@@ -58,7 +66,7 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">Smart Money Concepts</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'smc' }"
+            :class="{ 'rotate-180': expandedSections.smc }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -66,7 +74,7 @@ const severityClass = (severity) => {
         </div>
         
         <!-- SMC Content (only shows if expanded) -->
-        <div v-if="expandedSection === 'smc'" class="p-4 border-t border-dark-700/50" :class="{ 'p-3': mobile }">
+        <div v-if="expandedSections.smc" class="p-4 border-t border-dark-700/50" :class="{ 'p-3': mobile }">
           <div class="flex items-center justify-between mb-3">
             <span 
               class="px-2 py-1 text-xs rounded"
@@ -120,14 +128,14 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">Multi-Timeframe Trends</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'trends' }"
+            :class="{ 'rotate-180': expandedSections.trends }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
         
-        <div v-if="expandedSection === 'trends' && analysis.trends" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+        <div v-if="expandedSections.trends && analysis.trends" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <div class="grid grid-cols-2 gap-2">
             <div 
               v-for="(trend, tf) in analysis.trends"
@@ -160,14 +168,14 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">Key Levels</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'levels' }"
+            :class="{ 'rotate-180': expandedSections.levels }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
         
-        <div v-if="expandedSection === 'levels'" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+        <div v-if="expandedSections.levels" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <!-- Nearest Levels -->
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div class="p-3 bg-green-500/10 rounded-lg">
@@ -226,14 +234,14 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">Pivot Points</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'pivots' }"
+            :class="{ 'rotate-180': expandedSections.pivots }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
         
-        <div v-if="expandedSection === 'pivots'" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+        <div v-if="expandedSections.pivots" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <!-- Daily Pivot -->
           <div class="p-3 bg-dark-800/50 rounded-lg mb-3 text-center">
             <div class="text-xs text-dark-500">Daily Pivot</div>
@@ -282,14 +290,14 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">Momentum</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'momentum' }"
+            :class="{ 'rotate-180': expandedSections.momentum }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
         
-        <div v-if="expandedSection === 'momentum' && analysis.momentum" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+        <div v-if="expandedSections.momentum && analysis.momentum" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <div class="space-y-3">
             <div 
               v-for="(mom, tf) in analysis.momentum"
@@ -330,14 +338,14 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">⚠️ Warnings</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'warnings' }"
+            :class="{ 'rotate-180': expandedSections.warnings }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
         
-        <div v-if="expandedSection === 'warnings' && analysis.warnings?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+        <div v-if="expandedSections.warnings && analysis.warnings?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <div class="space-y-2">
             <div 
               v-for="(warning, i) in analysis.warnings"
@@ -361,14 +369,14 @@ const severityClass = (severity) => {
           <h4 class="text-sm font-medium text-dark-200">Signal Factors</h4>
           <svg 
             class="w-4 h-4 text-dark-400 transition-transform"
-            :class="{ 'rotate-180': expandedSection === 'factors' }"
+            :class="{ 'rotate-180': expandedSections.factors }"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
         
-        <div v-if="expandedSection === 'factors' && analysis.signal_factors?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
+        <div v-if="expandedSections.factors && analysis.signal_factors?.length" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }">
           <div class="space-y-1">
             <div 
               v-for="(factor, i) in analysis.signal_factors"
