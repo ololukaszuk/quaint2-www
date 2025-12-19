@@ -27,9 +27,9 @@ ML_API_KEY = os.environ.get("ML_API_KEY", "")
 ML_API_VERIFY_SSL = os.environ.get("ML_API_VERIFY_SSL", "false").lower() == "true"
 
 app = FastAPI(
-    title="QuAInt²",
+    title="QuAInt′",
     description="Real-time market analysis with AI-powered signals",
-    version="2.1.2"
+    version="2.2.2"
 )
 
 # CORS middleware
