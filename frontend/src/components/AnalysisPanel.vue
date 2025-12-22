@@ -207,7 +207,7 @@ const hasPivotValue = (value) => {
         </div>
       </div>
       
-      <!-- Pivot Points Section -->
+      <!-- Enhanced Pivot Points Section -->
       <div class="cursor-pointer" @click="toggleSection('pivots')">
         <div class="p-4 flex items-center justify-between" :class="{ 'p-3': mobile }">
           <h4 class="text-sm font-medium text-dark-200">Pivot Points</h4>
@@ -216,191 +216,290 @@ const hasPivotValue = (value) => {
           </svg>
         </div>
         
-        <div v-if="expandedSections.pivots" class="px-4 pb-4" :class="{ 'px-3 pb-3': mobile }" @click.stop>
-          <div class="p-3 bg-dark-800/50 rounded-lg mb-3 text-center">
-            <div class="text-xs text-dark-500">Daily Pivot</div>
-            <div class="font-mono text-brand-400 text-xl">${{ formatPrice(analysis.pivot_daily) }}</div>
-            <div class="text-xs mt-1" :class="analysis.price_vs_pivot === 'ABOVE' ? 'text-green-400' : 'text-red-400'">
-              Price {{ analysis.price_vs_pivot?.toLowerCase() || '-' }}
-            </div>
-          </div>
+        <div v-if="expandedSections.pivots" class="px-4 pb-4 space-y-4" :class="{ 'px-3 pb-3': mobile }" @click.stop>
           
-          <div class="mb-3">
-            <div class="text-xs text-dark-500 mb-2">Traditional</div>
-            <div class="grid grid-cols-3 gap-1 text-xs">
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R3</div>
-                <div class="font-mono text-red-400">${{ formatPrice(analysis.pivot_r3_traditional) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R2</div>
-                <div class="font-mono text-red-400">${{ formatPrice(analysis.pivot_r2_traditional) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R1</div>
-                <div class="font-mono text-red-400">${{ formatPrice(analysis.pivot_r1_traditional) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S1</div>
-                <div class="font-mono text-green-400">${{ formatPrice(analysis.pivot_s1_traditional) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S2</div>
-                <div class="font-mono text-green-400">${{ formatPrice(analysis.pivot_s2_traditional) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S3</div>
-                <div class="font-mono text-green-400">${{ formatPrice(analysis.pivot_s3_traditional) }}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div v-if="hasPivotValue(analysis.pivot_r3_fibonacci)" class="mb-3">
-            <div class="text-xs text-dark-500 mb-2">Fibonacci</div>
-            <div class="grid grid-cols-3 gap-1 text-xs">
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R3</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_fibonacci) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R2</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_fibonacci) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R1</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_fibonacci) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S1</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_fibonacci) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S2</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_fibonacci) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S3</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_fibonacci) }}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div v-if="hasPivotValue(analysis.pivot_r4_camarilla) || hasPivotValue(analysis.pivot_r3_camarilla)" class="mb-3">
-            <div class="text-xs text-dark-500 mb-2">Camarilla</div>
-            <div class="grid grid-cols-4 gap-1 text-xs">
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_r4_camarilla) ? 'bg-red-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_r4_camarilla) ? 'text-red-400/60' : 'text-dark-600'" class="text-xs">R4</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_r4_camarilla) ? 'text-red-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_r4_camarilla) ? '$' + formatPrice(analysis.pivot_r4_camarilla) : 'N/A' }}
+          <!-- Daily Pivot Overview Card -->
+          <div class="p-4 bg-gradient-to-r from-dark-800 to-dark-800/50 rounded-lg border border-dark-700">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-dark-500 uppercase tracking-wider">Daily Pivot Point</div>
+                <div class="font-mono text-2xl font-bold text-brand-400 mt-1">${{ formatPrice(analysis.pivot_daily) }}</div>
+                <div class="text-xs mt-2" :class="analysis.price_vs_pivot === 'ABOVE' ? 'text-green-400' : 'text-red-400'">
+                  Price <span class="font-semibold">{{ analysis.price_vs_pivot?.toLowerCase() || '-' }}</span> pivot
                 </div>
               </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_r3_camarilla) ? 'bg-red-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_r3_camarilla) ? 'text-red-400/60' : 'text-dark-600'" class="text-xs">R3</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_r3_camarilla) ? 'text-red-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_r3_camarilla) ? '$' + formatPrice(analysis.pivot_r3_camarilla) : 'N/A' }}
+              <div class="text-right">
+                <div class="text-xs text-dark-500 mb-2">Distance</div>
+                <div class="font-mono text-sm" :class="analysis.price_vs_pivot === 'ABOVE' ? 'text-green-400' : 'text-red-400'">
+                  {{ formatPrice(Math.abs(parseFloat(analysis.price) - parseFloat(analysis.pivot_daily))) }}
                 </div>
-              </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_r2_camarilla) ? 'bg-red-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_r2_camarilla) ? 'text-red-400/60' : 'text-dark-600'" class="text-xs">R2</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_r2_camarilla) ? 'text-red-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_r2_camarilla) ? '$' + formatPrice(analysis.pivot_r2_camarilla) : 'N/A' }}
-                </div>
-              </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_r1_camarilla) ? 'bg-red-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_r1_camarilla) ? 'text-red-400/60' : 'text-dark-600'" class="text-xs">R1</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_r1_camarilla) ? 'text-red-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_r1_camarilla) ? '$' + formatPrice(analysis.pivot_r1_camarilla) : 'N/A' }}
-                </div>
-              </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_s1_camarilla) ? 'bg-green-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_s1_camarilla) ? 'text-green-400/60' : 'text-dark-600'" class="text-xs">S1</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_s1_camarilla) ? 'text-green-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_s1_camarilla) ? '$' + formatPrice(analysis.pivot_s1_camarilla) : 'N/A' }}
-                </div>
-              </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_s2_camarilla) ? 'bg-green-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_s2_camarilla) ? 'text-green-400/60' : 'text-dark-600'" class="text-xs">S2</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_s2_camarilla) ? 'text-green-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_s2_camarilla) ? '$' + formatPrice(analysis.pivot_s2_camarilla) : 'N/A' }}
-                </div>
-              </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_s3_camarilla) ? 'bg-green-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_s3_camarilla) ? 'text-green-400/60' : 'text-dark-600'" class="text-xs">S3</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_s3_camarilla) ? 'text-green-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_s3_camarilla) ? '$' + formatPrice(analysis.pivot_s3_camarilla) : 'N/A' }}
-                </div>
-              </div>
-              <div class="p-1 rounded text-center" :class="hasPivotValue(analysis.pivot_s4_camarilla) ? 'bg-green-500/10' : 'bg-dark-800/30'">
-                <div :class="hasPivotValue(analysis.pivot_s4_camarilla) ? 'text-green-400/60' : 'text-dark-600'" class="text-xs">S4</div>
-                <div class="font-mono text-xs" :class="hasPivotValue(analysis.pivot_s4_camarilla) ? 'text-green-400' : 'text-dark-600'">
-                  {{ hasPivotValue(analysis.pivot_s4_camarilla) ? '$' + formatPrice(analysis.pivot_s4_camarilla) : 'N/A' }}
-                </div>
-              </div>
-            </div>
-            <div v-if="!hasPivotValue(analysis.pivot_r1_camarilla) && !hasPivotValue(analysis.pivot_s1_camarilla)" class="mt-2 text-xs text-dark-600 italic">
-              Camarilla pivot data not available from ML API
-            </div>
-          </div>
-
-          <div v-if="hasPivotValue(analysis.pivot_r3_woodie) || hasPivotValue(analysis.pivot_s3_woodie)" class="mb-3>
-            <div class="text-xs text-dark-500 mb-2">Woodie</div>
-            <div class="grid grid-cols-3 gap-1 text-xs">
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R3</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_woodie) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R2</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_woodie) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R1</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_woodie) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S1</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_woodie) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S2</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_woodie) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S3</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_woodie) }}</div>
               </div>
             </div>
           </div>
 
-          <div v-if="hasPivotValue(analysis.pivot_r3_demark) || hasPivotValue(analysis.pivot_s3_demark)" class="mb-3>
-            <div class="text-xs text-dark-500 mb-2">Demark</div>
-            <div class="grid grid-cols-3 gap-1 text-xs">
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R3</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_demark) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R2</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_demark) }}</div>
-              </div>
-              <div class="p-1.5 bg-red-500/10 rounded text-center">
-                <div class="text-red-400/60">R1</div>
-                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_demark) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S1</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_demark) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S2</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_demark) }}</div>
-              </div>
-              <div class="p-1.5 bg-green-500/10 rounded text-center">
-                <div class="text-green-400/60">S3</div>
-                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_demark) }}</div>
+          <!-- Confluence Zones Highlight -->
+          <div v-if="analysis.pivot_confluence_zones && analysis.pivot_confluence_zones.length > 0" class="p-3 bg-dark-800/50 rounded-lg border border-yellow-500/30">
+            <div class="text-xs text-yellow-400 font-semibold mb-2">⚡ Confluence Zones</div>
+            <div class="space-y-2">
+              <div v-for="(zone, idx) in analysis.pivot_confluence_zones" :key="idx" class="flex items-center justify-between text-xs">
+                <div>
+                  <span :class="zone.type === 'resistance' ? 'text-red-400' : 'text-green-400'" class="font-semibold">
+                    {{ zone.type === 'resistance' ? '⬆️ Resistance' : '⬇️ Support' }}
+                  </span>
+                  <span class="text-dark-400 ml-2">({{ zone.data[2].join(', ') }})</span>
+                </div>
+                <div class="font-mono" :class="zone.type === 'resistance' ? 'text-red-400' : 'text-green-400'">
+                  ${{ formatPrice(zone.data[0]) }}
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Traditional Pivots -->
+          <div class="p-3 bg-dark-800/30 rounded-lg border border-dark-700 mb-3">
+            <div class="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-3">Traditional</div>
+            <div class="space-y-2">
+              <!-- Resistance Row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R3</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r3_traditional) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R2</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r2_traditional) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R1</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r1_traditional) }}</div>
+                </div>
+              </div>
+              
+              <!-- Pivot Point Row -->
+              <div class="flex justify-center">
+                <div class="p-3 bg-purple-500/20 border border-purple-500/40 rounded w-32 text-center">
+                  <div class="text-purple-400/70 font-semibold text-xs">PP</div>
+                  <div class="font-mono text-purple-400 text-base">${{ formatPrice(analysis.pivot_daily) }}</div>
+                </div>
+              </div>
+              
+              <!-- Support Row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S1</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s1_traditional) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S2</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s2_traditional) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S3</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s3_traditional) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fibonacci Pivots -->
+          <div v-if="hasPivotValue(analysis.pivot_r1_fibonacci)" class="p-3 bg-dark-800/30 rounded-lg border border-dark-700 mb-3">
+            <div class="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-3">Fibonacci</div>
+            <div class="space-y-2">
+              <!-- Resistance Row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R3</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r3_fibonacci) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R2</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r2_fibonacci) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R1</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r1_fibonacci) }}</div>
+                </div>
+              </div>
+              
+              <!-- Pivot Point Row -->
+              <div class="flex justify-center">
+                <div class="p-3 bg-purple-500/20 border border-purple-500/40 rounded w-32 text-center">
+                  <div class="text-purple-400/70 font-semibold text-xs">PP</div>
+                  <div class="font-mono text-purple-400 text-base">${{ formatPrice(analysis.pivot_daily) }}</div>
+                </div>
+              </div>
+              
+              <!-- Support Row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S1</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s1_fibonacci) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S2</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s2_fibonacci) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S3</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s3_fibonacci) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Camarilla Pivots -->
+          <div v-if="hasPivotValue(analysis.pivot_r1_camarilla)" class="p-3 bg-dark-800/30 rounded-lg border border-dark-700 mb-3">
+            <div class="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-3">Camarilla</div>
+            <div class="space-y-2">
+              <!-- R4 Row -->
+              <div class="flex justify-center">
+                <div class="p-1.5 bg-red-500/10 border border-red-500/20 rounded w-20 text-center opacity-70">
+                  <div class="text-red-400/60 font-semibold text-xs">R4</div>
+                  <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r4_camarilla) }}</div>
+                </div>
+              </div>
+              
+              <!-- R3, R2, R1 Row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center ring-2 ring-red-400/50">
+                  <div class="text-red-400/70 font-semibold text-xs">R3*</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r3_camarilla) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R2</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r2_camarilla) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R1</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r1_camarilla) }}</div>
+                </div>
+              </div>
+              
+              <!-- Pivot Point Row -->
+              <div class="flex justify-center">
+                <div class="p-3 bg-purple-500/20 border border-purple-500/40 rounded w-32 text-center">
+                  <div class="text-purple-400/70 font-semibold text-xs">PP</div>
+                  <div class="font-mono text-purple-400 text-base">${{ formatPrice(analysis.pivot_camarilla) }}</div>
+                </div>
+              </div>
+              
+              <!-- S1, S2, S3 Row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S1</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s1_camarilla) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S2</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s2_camarilla) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center ring-2 ring-green-400/50">
+                  <div class="text-green-400/70 font-semibold text-xs">S3*</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s3_camarilla) }}</div>
+                </div>
+              </div>
+              
+              <!-- S4 Row -->
+              <div class="flex justify-center">
+                <div class="p-1.5 bg-green-500/10 border border-green-500/20 rounded w-20 text-center opacity-70">
+                  <div class="text-green-400/60 font-semibold text-xs">S4</div>
+                  <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s4_camarilla) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Woodie Pivots -->
+          <div v-if="hasPivotValue(analysis.pivot_r1_woodie)" class="p-3 bg-dark-800/30 rounded-lg border border-dark-700 mb-3">
+            <div class="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-3">Woodie</div>
+            <div class="space-y-2">
+              <!-- Resistance Row -->
+              <div class="grid grid-cols-2 gap-2 justify-center">
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R2</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r2_woodie) }}</div>
+                </div>
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">R1</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r1_woodie) }}</div>
+                </div>
+              </div>
+              
+              <!-- Pivot Point Row -->
+              <div class="flex justify-center">
+                <div class="p-3 bg-purple-500/20 border border-purple-500/40 rounded w-32 text-center">
+                  <div class="text-purple-400/70 font-semibold text-xs">PP</div>
+                  <div class="font-mono text-purple-400 text-base">${{ formatPrice(analysis.pivot_woodie) }}</div>
+                </div>
+              </div>
+              
+              <!-- Support Row -->
+              <div class="grid grid-cols-2 gap-2 justify-center">
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S1</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s1_woodie) }}</div>
+                </div>
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">S2</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s2_woodie) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DeMark Pivots -->
+          <div v-if="hasPivotValue(analysis.pivot_r1_demark)" class="p-3 bg-dark-800/30 rounded-lg border border-dark-700 mb-3">
+            <div class="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-3">DeMark</div>
+            <div class="space-y-2">
+              <!-- High Row -->
+              <div class="flex justify-center">
+                <div class="p-2 bg-red-500/15 border border-red-500/30 rounded w-40 text-center">
+                  <div class="text-red-400/70 font-semibold text-xs">Projected High</div>
+                  <div class="font-mono text-red-400 text-sm">${{ formatPrice(analysis.pivot_r1_demark) }}</div>
+                </div>
+              </div>
+              
+              <!-- Pivot Row -->
+              <div class="flex justify-center">
+                <div class="p-3 bg-purple-500/20 border border-purple-500/40 rounded w-40 text-center">
+                  <div class="text-purple-400/70 font-semibold text-xs">PP</div>
+                  <div class="font-mono text-purple-400 text-base">${{ formatPrice(analysis.pivot_demark) }}</div>
+                </div>
+              </div>
+              
+              <!-- Low Row -->
+              <div class="flex justify-center">
+                <div class="p-2 bg-green-500/15 border border-green-500/30 rounded w-40 text-center">
+                  <div class="text-green-400/70 font-semibold text-xs">Projected Low</div>
+                  <div class="font-mono text-green-400 text-sm">${{ formatPrice(analysis.pivot_s1_demark) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Metrics -->
+          <div class="p-3 bg-dark-800/30 rounded-lg border border-dark-700">
+            <div class="text-xs font-semibold text-dark-400 mb-3 uppercase">📊 Key Metrics</div>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="flex justify-between">
+                <span class="text-dark-500">Nearest Resistance:</span>
+                <span class="font-mono text-red-400">${{ formatPrice(analysis.nearest_resistance) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-dark-500">Nearest Support:</span>
+                <span class="font-mono text-green-400">${{ formatPrice(analysis.nearest_support) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-dark-500">Resistance Strength:</span>
+                <span class="font-mono">{{ (parseFloat(analysis.resistance_strength) * 100).toFixed(0) }}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-dark-500">Support Strength:</span>
+                <span class="font-mono">{{ (parseFloat(analysis.support_strength) * 100).toFixed(0) }}%</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
       
