@@ -19,17 +19,37 @@ const recentTrades = computed(() => {
   return filtered.slice(-displayCount.value).reverse()
 })
 
-// Max quantity for visual bars
+// Max quantity for visual bars (based on display unit)
 const maxQty = computed(() => {
   if (recentTrades.value.length === 0) return 1
-  return Math.max(...recentTrades.value.map(t => t.quantity))
+  const quantities = recentTrades.value.map(t => {
+    return store.displayUnitTrades === 'USD' ? t.quote_volume : t.quantity
+  })
+  return Math.max(...quantities)
 })
 
-// Calculate buy/sell ratio from recent trades
+// Calculate buy/sell pressure from trade volumes (BTC-based)
+// Range: -100% (all sells) to +100% (all buys)
 const buySellRatio = computed(() => {
-  if (recentTrades.value.length === 0) return 50
-  const buyCount = recentTrades.value.filter(t => t.side === 'buy').length
-  return (buyCount / recentTrades.value.length) * 100
+  if (recentTrades.value.length === 0) return 0
+
+  let buyVolume = 0
+  let sellVolume = 0
+
+  recentTrades.value.forEach(trade => {
+    // Use quantity in BTC for volume calculation
+    if (trade.side === 'buy') {
+      buyVolume += trade.quantity
+    } else {
+      sellVolume += trade.quantity
+    }
+  })
+
+  const totalVolume = buyVolume + sellVolume
+  if (totalVolume === 0) return 0
+
+  // Range: -100 to +100
+  return ((buyVolume - sellVolume) / totalVolume) * 100
 })
 
 const pressureIndicator = computed(() => {
@@ -51,9 +71,10 @@ const getDisplayQtyFormatted = (trade) => {
   return formatQuantity(trade.quantity)
 }
 
-// Bar width calculation
+// Bar width calculation based on display unit
 const getBarWidth = (trade) => {
-  return (trade.quantity / maxQty.value) * 100
+  const qty = getDisplayQty(trade)
+  return (qty / maxQty.value) * 100
 }
 
 // Apply filter
@@ -98,11 +119,12 @@ const applyQuickFilter = (btc) => {
         >
           ≥{{ store.tradeMinQtyBTC }} BTC
         </span>
+        <!-- Buy/Sell Pressure Indicator -->
         <span 
           :class="[
             'badge',
-            pressureIndicator.class === 'price-up' ? 'badge-green' : 
-            pressureIndicator.class === 'price-down' ? 'badge-red' : 'badge-gray',
+            buySellRatio > 0 ? 'badge-green' : 
+            buySellRatio < 0 ? 'badge-red' : 'badge-gray',
             compact ? 'text-xs py-0' : ''
           ]"
         >
