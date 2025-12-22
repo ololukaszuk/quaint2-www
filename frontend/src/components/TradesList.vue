@@ -53,7 +53,44 @@ const buySellRatio = computed(() => {
 })
 
 const pressureIndicator = computed(() => {
-  return getBuyPressureIndicator(buySellRatio.value)
+  const ratio = buySellRatio.value
+
+  if (ratio >= 66) {
+    return {
+      emoji: '👆👆',
+      label: 'Strong Buy',
+      class: 'badge-green',
+      stage: 'strong-buy'
+    }
+  } else if (ratio >= 20) {
+    return {
+      emoji: '👆',
+      label: 'Buy Bias',
+      class: 'badge-green',
+      stage: 'buy'
+    }
+  } else if (ratio > -20) {
+    return {
+      emoji: '⚖️',
+      label: 'Balanced',
+      class: 'badge-gray',
+      stage: 'balanced'
+    }
+  } else if (ratio > -66) {
+    return {
+      emoji: '👇',
+      label: 'Sell Bias',
+      class: 'badge-red',
+      stage: 'sell'
+    }
+  } else {
+    return {
+      emoji: '👇👇',
+      label: 'Strong Sell',
+      class: 'badge-red',
+      stage: 'strong-sell'
+    }
+  }
 })
 
 // Display value based on unit toggle
@@ -123,10 +160,10 @@ const applyQuickFilter = (btc) => {
         <span 
           :class="[
             'badge',
-            buySellRatio > 0 ? 'badge-green' : 
-            buySellRatio < 0 ? 'badge-red' : 'badge-gray',
+            pressureIndicator.class,
             compact ? 'text-xs py-0' : ''
           ]"
+          :title="`${pressureIndicator.label}: ${buySellRatio.toFixed(1)}%`"
         >
           {{ pressureIndicator.emoji }} {{ buySellRatio.toFixed(0) }}%
         </span>
