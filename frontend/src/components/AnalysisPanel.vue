@@ -341,6 +341,66 @@ const hasPivotValue = (value) => {
               Camarilla pivot data not available from ML API
             </div>
           </div>
+
+          <div v-if="hasPivotValue(analysis.pivot_r3_woodie) || hasPivotValue(analysis.pivot_s3_woodie)" class="mb-3>
+            <div class="text-xs text-dark-500 mb-2">Woodie</div>
+            <div class="grid grid-cols-3 gap-1 text-xs">
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R3</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_woodie) }}</div>
+              </div>
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R2</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_woodie) }}</div>
+              </div>
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R1</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_woodie) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S1</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_woodie) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S2</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_woodie) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S3</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_woodie) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="hasPivotValue(analysis.pivot_r3_demark) || hasPivotValue(analysis.pivot_s3_demark)" class="mb-3>
+            <div class="text-xs text-dark-500 mb-2">Demark</div>
+            <div class="grid grid-cols-3 gap-1 text-xs">
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R3</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r3_demark) }}</div>
+              </div>
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R2</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r2_demark) }}</div>
+              </div>
+              <div class="p-1.5 bg-red-500/10 rounded text-center">
+                <div class="text-red-400/60">R1</div>
+                <div class="font-mono text-red-400 text-xs">${{ formatPrice(analysis.pivot_r1_demark) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S1</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s1_demark) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S2</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s2_demark) }}</div>
+              </div>
+              <div class="p-1.5 bg-green-500/10 rounded text-center">
+                <div class="text-green-400/60">S3</div>
+                <div class="font-mono text-green-400 text-xs">${{ formatPrice(analysis.pivot_s3_demark) }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
