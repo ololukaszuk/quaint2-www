@@ -94,7 +94,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               <div class="card p-3 cursor-pointer hover:bg-dark-800/50 transition-colors" @click="store.toggleVolumeUnit">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-dark-500 font-medium text-xs">{{ volumeLabel }}</span>
-                  <span class="text-xs text-dark-600 hover:text-dark-400">â‡„ {{ store.displayUnitVolume }}</span>
+                  <span class="text-xs text-dark-600 hover:text-dark-400">⇄ {{ store.displayUnitVolume }}</span>
                 </div>
                 <div class="flex items-baseline gap-2">
                   <span class="font-mono font-bold tabular-nums text-xl text-dark-100">
@@ -106,7 +106,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               <div class="card p-3 cursor-pointer hover:bg-dark-800/50 transition-colors" @click="store.toggleVolumeUnit">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-dark-500 font-medium text-xs">{{ volume24hLabel }}</span>
-                  <span class="text-xs text-dark-600 hover:text-dark-400">â‡„ {{ store.displayUnitVolume }}</span>
+                  <span class="text-xs text-dark-600 hover:text-dark-400">⇄ {{ store.displayUnitVolume }}</span>
                 </div>
                 <div class="flex items-baseline gap-2">
                   <span class="font-mono font-bold tabular-nums text-xl text-dark-100">
@@ -145,7 +145,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 : 'text-dark-400 hover:text-dark-200'"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>ðŸ“Š</span>
+                <span>📊</span>
                 <span>Analysis</span>
               </span>
               <div 
@@ -161,7 +161,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 : 'text-dark-400 hover:text-dark-200'"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>ðŸŽ¯</span>
+                <span>🎯</span>
                 <span>Signals</span>
                 <span 
                   v-if="store.currentSignal"
@@ -189,7 +189,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 : 'text-dark-400 hover:text-dark-200'"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>ðŸ¤–</span>
+                <span>🤖</span>
                 <span>AI</span>
               </span>
               <div 
@@ -224,7 +224,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               ? 'text-brand-400 bg-dark-800/50' 
               : 'text-dark-400'"
           >
-            ðŸ“ˆ Chart
+            📈 Chart
           </button>
           <button
             @click="mobileTab = 'analysis'"
@@ -234,7 +234,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               : 'text-dark-400'"
           >
             <span class="flex items-center justify-center gap-1">
-              ðŸŽ¯ Signals
+              🎯 Signals
               <span 
                 v-if="store.currentSignal"
                 class="w-2 h-2 rounded-full"
@@ -253,7 +253,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               ? 'text-brand-400 bg-dark-800/50' 
               : 'text-dark-400'"
           >
-            ðŸ“š Book
+            📚 Book
           </button>
         </div>
         
@@ -309,7 +309,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   @click="mobileTab = 'analysis'"
                   class="text-xs text-brand-400 hover:text-brand-300"
                 >
-                  View Details â†’
+                  View Details →
                 </button>
               </div>
             </div>
@@ -326,7 +326,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   ? 'bg-brand-600 text-white' 
                   : 'bg-dark-800 text-dark-300'"
               >
-                ðŸŽ¯ Current Signal
+                🎯 Current Signal
               </button>
               <button
                 @click="store.setActiveTab('analysis')"
@@ -335,7 +335,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   ? 'bg-brand-600 text-white' 
                   : 'bg-dark-800 text-dark-300'"
               >
-                ðŸ“Š Full Analysis
+                📊 Full Analysis
               </button>
               <button
                 @click="store.setActiveTab('llm')"
@@ -344,7 +344,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   ? 'bg-brand-600 text-white' 
                   : 'bg-dark-800 text-dark-300'"
               >
-                ðŸ¤– AI Prediction
+                🤖 AI Prediction
               </button>
             </div>
             
