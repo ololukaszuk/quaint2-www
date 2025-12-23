@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useMarketStore } from '../store/market'
 import { formatPrice, formatTimeAgo } from '../utils/format'
 
@@ -17,8 +17,31 @@ const expandedSections = ref({
   warnings: false,
   factors: false
 })
+const currentTime = ref(Date.now())
+let interval
 
 const analysis = computed(() => store.marketAnalysis)
+
+// Update every 1 second for live time progression
+onMounted(() => {
+  interval = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 1000)
+})
+
+onUnmounted(() => clearInterval(interval))
+
+// Recomputes whenever currentTime changes
+const formattedTime = computed(() => {
+  if (!analysis.value?.analysis_time) return '-'
+  return formatTimeAgo(analysis.value.analysis_time)
+})
+
+// Full timestamp for tooltip
+const fullTimestamp = computed(() => {
+  if (!analysis.value?.analysis_time) return ''
+  return new Date(analysis.value.analysis_time).toLocaleString()
+})
 
 const toggleSection = (section) => {
   expandedSections.value[section] = !expandedSections.value[section]
@@ -77,9 +100,15 @@ const hasPivotValue = (value) => {
   <div style="height: 100%; overflow-y: auto; overflow-x: hidden;">
     <div v-if="analysis" class="divide-y divide-dark-700/50">
       
+      <!-- Header with Updated timestamp -->
       <div class="px-4 py-2 bg-dark-900/50 border-b border-dark-700/50 flex items-center justify-between">
-        <span class="text-xs text-dark-500">Current Analysis</span>
-        <span class="text-xs text-dark-600">Updated {{ formatTimeAgo(analysis.analysis_time) }}</span>
+        <span class="text-xs text-dark-500">Market Analysis</span>
+        <span 
+          class="text-xs text-dark-600 cursor-help"
+          :title="fullTimestamp"
+        >
+          Updated {{ formattedTime }}
+        </span>
       </div>
       
       <!-- SMC Section -->

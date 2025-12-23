@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useMarketStore } from '../store/market'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatTimeAgo } from '../utils/format'
 
 const props = defineProps({
   mobile: { type: Boolean, default: false }
@@ -9,8 +9,31 @@ const props = defineProps({
 
 const store = useMarketStore()
 const showWarnings = ref(false)
+const currentTime = ref(Date.now())
+let interval
 
 const analysis = computed(() => store.llmAnalysis)
+
+// Update every 1 second for live time progression
+onMounted(() => {
+  interval = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 1000)
+})
+
+onUnmounted(() => clearInterval(interval))
+
+// Recomputes whenever currentTime changes
+const formattedTime = computed(() => {
+  if (!analysis.value?.analysis_time) return '-'
+  return formatTimeAgo(analysis.value.analysis_time)
+})
+
+// Full timestamp for tooltip
+const fullTimestamp = computed(() => {
+  if (!analysis.value?.analysis_time) return ''
+  return new Date(analysis.value.analysis_time).toLocaleString()
+})
 
 const directionClass = (direction) => {
   if (direction === 'BULLISH') return 'bg-green-500/20 text-green-400 border-green-500/30'
@@ -29,18 +52,6 @@ const accuracyIcon = (correct) => {
   if (correct === false) return '❌'
   return '⏳'
 }
-
-const formatTimeAgo = (timestamp) => {
-  if (!timestamp) return '-'
-  const now = new Date()
-  const time = new Date(timestamp)
-  const diff = Math.floor((now - time) / 1000)
-  
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
 </script>
 
 <template>
@@ -56,7 +67,12 @@ const formatTimeAgo = (timestamp) => {
           </div>
         </div>
         <div class="text-right">
-          <div class="text-xs text-dark-500">{{ formatTimeAgo(analysis.analysis_time) }}</div>
+          <div 
+            class="text-xs text-dark-500 cursor-help"
+            :title="fullTimestamp"
+          >
+            {{ formattedTime }}
+          </div>
           <div v-if="analysis.response_time_seconds" class="text-xs text-dark-600">
             {{ analysis.response_time_seconds.toFixed(1) }}s response
           </div>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useMarketStore } from '../store/market'
 import { formatPrice, formatPercent, formatTime, formatTimeAgo } from '../utils/format'
 
@@ -9,32 +9,9 @@ const props = defineProps({
 
 const store = useMarketStore()
 const toggleHistory = ref(false)
-const currentTime = ref(Date.now())
-let interval
 
 const analysis = computed(() => store.marketAnalysis)
 const signals = computed(() => store.marketSignals)
-
-// Update every 1 second for live time progression
-onMounted(() => {
-  interval = setInterval(() => {
-    currentTime.value = Date.now()
-  }, 1000)
-})
-
-onUnmounted(() => clearInterval(interval))
-
-// Recomputes whenever currentTime changes
-const formattedTime = computed(() => {
-  if (!analysis.value?.analysis_time) return '-'
-  return formatTimeAgo(analysis.value.analysis_time)
-})
-
-// Full timestamp for tooltip
-const fullTimestamp = computed(() => {
-  if (!analysis.value?.analysis_time) return ''
-  return new Date(analysis.value.analysis_time).toLocaleString()
-})
 
 const signalTypeClass = (type) => {
   if (!type) return 'bg-dark-700 text-dark-400'
@@ -56,8 +33,8 @@ const actionClass = (action) => {
   if (action === 'SHORT') return 'text-red-400'
   return 'text-yellow-400'
 }
-</script>
 
+</script>
 
 <template>
   <div style="height: 100%; overflow-y: auto; overflow-x: hidden;">
@@ -141,11 +118,8 @@ const actionClass = (action) => {
         </div>
         
         <!-- Last Updated -->
-        <div 
-          class="text-xs text-dark-600 text-center cursor-help"
-          :title="fullTimestamp"
-        >
-          Updated {{ formattedTime }}
+        <div class="text-xs text-dark-600 text-center">
+          Updated {{ formatTimeAgo(analysis.analysis_time) }}
         </div>
       </div>
       

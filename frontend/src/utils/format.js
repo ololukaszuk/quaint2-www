@@ -187,8 +187,13 @@ export function formatTimeAgo(timestamp) {
   
   const now = Date.now()
   const time = new Date(timestamp).getTime()
+  
+  if (isNaN(time)) return '-'
+  
   const diffSeconds = Math.floor((now - time) / 1000)
   
+  if (diffSeconds < 0) return 'in the future'
+  if (diffSeconds < 1) return 'just now'
   if (diffSeconds < 60) return `${diffSeconds}s ago`
   if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`
   if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
