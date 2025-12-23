@@ -49,18 +49,23 @@ const getDisplayQtyFormatted = (level) => {
   return formatQuantity(level.quantity)
 }
 
-// FIXED #2: Total column should show cumulative total in current unit
-const getDisplayTotal = (level) => {
-  // For display only - doesn't need separate function for calculation
-  // The calculation happens in the template
-  return null
-}
-
-// FIXED #2: Calculate cumulative total up to this level
-const getCumulativeTotal = (levels, index) => {
-  const cumulative = levels.slice(0, index + 1).reduce((sum, level) => {
-    return sum + (level.price * level.quantity)
-  }, 0)
+// FIXED #2: Calculate cumulative total from spread outwards
+// For asks: cumulative is sum from top ask down to current level
+// For bids: cumulative is sum from bottom bid up to current level
+const getCumulativeTotal = (levels, index, isAsks = false) => {
+  let cumulative = 0
+  
+  if (isAsks) {
+    // For asks, sum from the top (lowest price/first item) down to current
+    cumulative = levels.slice(0, index + 1).reduce((sum, level) => {
+      return sum + (level.price * level.quantity)
+    }, 0)
+  } else {
+    // For bids, sum from the bottom (highest price/last item) up to current
+    cumulative = levels.slice(index).reduce((sum, level) => {
+      return sum + (level.price * level.quantity)
+    }, 0)
+  }
   
   if (store.displayUnitOrderBook === 'USD') {
     return '$' + formatPrice(cumulative)
@@ -258,7 +263,7 @@ const applyQuickFilter = (btc) => {
         <!-- FIXED #4: Asks align to bottom when filter applied -->
         <div 
           v-if="asks.length > 0 && store.orderbookMinQtyBTC > 0"
-          class="flex flex-col-reverse"
+          class="flex flex-col"
         >
           <div 
             v-for="(ask, index) in asks" 
@@ -277,7 +282,7 @@ const applyQuickFilter = (btc) => {
             <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
             <!-- FIXED #2: Total column now calculates cumulative total correctly -->
             <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-              {{ getCumulativeTotal(asks, index) }}
+              {{ getCumulativeTotal(asks, index, true) }}
             </span>
           </div>
         </div>
@@ -300,7 +305,7 @@ const applyQuickFilter = (btc) => {
             <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
             <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
             <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-              {{ getCumulativeTotal(asks, index) }}
+              {{ getCumulativeTotal(asks, index, true) }}
             </span>
           </div>
         </div>
