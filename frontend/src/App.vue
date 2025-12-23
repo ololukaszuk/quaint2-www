@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useMarketStore } from './store/market'
 import Header from './components/Header.vue'
 import PriceCard from './components/PriceCard.vue'
@@ -17,6 +17,22 @@ const store = useMarketStore()
 // Mobile sidebar state
 const showMobileSidebar = ref(false)
 const mobileTab = ref('chart') // 'chart', 'analysis', 'book'
+
+// Update document title with current price
+watch(
+  () => store.lastPrice,
+  (newPrice) => {
+    if (newPrice && newPrice > 0) {
+      // Format price with 2 decimal places
+      const formattedPrice = newPrice.toLocaleString('en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })
+      document.title = `${formattedPrice} - BTCUSDT | QuAInt′`
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   store.connect()
@@ -78,7 +94,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               <div class="card p-3 cursor-pointer hover:bg-dark-800/50 transition-colors" @click="store.toggleVolumeUnit">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-dark-500 font-medium text-xs">{{ volumeLabel }}</span>
-                  <span class="text-xs text-dark-600 hover:text-dark-400">⇄ {{ store.displayUnitVolume }}</span>
+                  <span class="text-xs text-dark-600 hover:text-dark-400">â‡„ {{ store.displayUnitVolume }}</span>
                 </div>
                 <div class="flex items-baseline gap-2">
                   <span class="font-mono font-bold tabular-nums text-xl text-dark-100">
@@ -90,7 +106,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               <div class="card p-3 cursor-pointer hover:bg-dark-800/50 transition-colors" @click="store.toggleVolumeUnit">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-dark-500 font-medium text-xs">{{ volume24hLabel }}</span>
-                  <span class="text-xs text-dark-600 hover:text-dark-400">⇄ {{ store.displayUnitVolume }}</span>
+                  <span class="text-xs text-dark-600 hover:text-dark-400">â‡„ {{ store.displayUnitVolume }}</span>
                 </div>
                 <div class="flex items-baseline gap-2">
                   <span class="font-mono font-bold tabular-nums text-xl text-dark-100">
@@ -129,7 +145,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 : 'text-dark-400 hover:text-dark-200'"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>📊</span>
+                <span>ðŸ“Š</span>
                 <span>Analysis</span>
               </span>
               <div 
@@ -145,7 +161,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 : 'text-dark-400 hover:text-dark-200'"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>🎯</span>
+                <span>ðŸŽ¯</span>
                 <span>Signals</span>
                 <span 
                   v-if="store.currentSignal"
@@ -173,7 +189,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 : 'text-dark-400 hover:text-dark-200'"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>🤖</span>
+                <span>ðŸ¤–</span>
                 <span>AI</span>
               </span>
               <div 
@@ -208,7 +224,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               ? 'text-brand-400 bg-dark-800/50' 
               : 'text-dark-400'"
           >
-            📈 Chart
+            ðŸ“ˆ Chart
           </button>
           <button
             @click="mobileTab = 'analysis'"
@@ -218,7 +234,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               : 'text-dark-400'"
           >
             <span class="flex items-center justify-center gap-1">
-              🎯 Signals
+              ðŸŽ¯ Signals
               <span 
                 v-if="store.currentSignal"
                 class="w-2 h-2 rounded-full"
@@ -237,7 +253,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               ? 'text-brand-400 bg-dark-800/50' 
               : 'text-dark-400'"
           >
-            📚 Book
+            ðŸ“š Book
           </button>
         </div>
         
@@ -293,7 +309,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   @click="mobileTab = 'analysis'"
                   class="text-xs text-brand-400 hover:text-brand-300"
                 >
-                  View Details →
+                  View Details â†’
                 </button>
               </div>
             </div>
@@ -310,7 +326,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   ? 'bg-brand-600 text-white' 
                   : 'bg-dark-800 text-dark-300'"
               >
-                🎯 Current Signal
+                ðŸŽ¯ Current Signal
               </button>
               <button
                 @click="store.setActiveTab('analysis')"
@@ -319,7 +335,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   ? 'bg-brand-600 text-white' 
                   : 'bg-dark-800 text-dark-300'"
               >
-                📊 Full Analysis
+                ðŸ“Š Full Analysis
               </button>
               <button
                 @click="store.setActiveTab('llm')"
@@ -328,7 +344,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                   ? 'bg-brand-600 text-white' 
                   : 'bg-dark-800 text-dark-300'"
               >
-                🤖 AI Prediction
+                ðŸ¤– AI Prediction
               </button>
             </div>
             
