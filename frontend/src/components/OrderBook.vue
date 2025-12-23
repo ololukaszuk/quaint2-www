@@ -56,16 +56,13 @@ const getDisplayQtyFormatted = (level) => {
 // FIXED #2: Calculate cumulative total from spread outwards
 // For asks: sum from bottom (lowest price/closest to spread) UP to current row
 // For bids: sum from top (highest price/closest to spread) DOWN to current row
-// Note: asks array is reversed, and display uses flex-col-reverse
 const getCumulativeTotal = (levels, index, isAsks = false) => {
   let cumulative = 0
   
   if (isAsks) {
-    // Asks array: [highest_price, ..., lowest_price] (reversed from store)
-    // Display: flex-col-reverse shows them as [lowest_price, ..., highest_price] visually
-    // Visual index 0 (bottom) = array index (length-1)
-    // We want cumulative from visual bottom up, which is from array end backwards
-    // So: sum from index onwards (from current to end of array)
+    // Asks array is reversed: [highest_price, ..., lowest_price]
+    // Visual display (with justify-end): highest at top, lowest at bottom
+    // We want cumulative from bottom (lowest=end of array) up to current
     cumulative = levels.slice(index).reduce((sum, level) => {
       if (store.displayUnitOrderBook === 'USD') {
         return sum + (level.price * level.quantity)
@@ -90,10 +87,9 @@ const getCumulativeTotal = (levels, index, isAsks = false) => {
 }
 
 // FIXED #1: Scroll functions
-// With flex-col-reverse, scrollTop 0 shows the bottom items
 function scrollAsksToBottom() {
   if (asksContainer.value) {
-    asksContainer.value.scrollTop = 0
+    asksContainer.value.scrollTop = asksContainer.value.scrollHeight
   }
 }
 
@@ -105,44 +101,35 @@ function scrollBidsToTop() {
 
 let currentSymbol = ''
 let currentFilterValue = store.orderbookMinQtyBTC
-let isInitialLoad = true
 
-// FIXED #1: Reset scroll position when symbol OR filter changes
-// Use aggressive scroll management to prevent drift
+// FIXED #1: Only auto-scroll when symbol or filter changes
 watch(
-  () => [asks.value, bids.value, store.symbol, store.orderbookMinQtyBTC],
-  async ([newAsks, newBids, sym, filterVal]) => {
+  () => [store.symbol, store.orderbookMinQtyBTC],
+  async ([sym, filterVal]) => {
     const symbolChanged = sym !== currentSymbol
     const filterChanged = filterVal !== currentFilterValue
     
     if (symbolChanged) {
       currentSymbol = sym
-      isInitialLoad = true
     }
     
     if (filterChanged) {
       currentFilterValue = filterVal
     }
     
-    // Scroll asks to bottom on any data change or filter/symbol change
-    if (newAsks.length > 0) {
+    // Only scroll on symbol or filter change
+    if (symbolChanged || filterChanged) {
       await nextTick()
       scrollAsksToBottom()
-      // Additional scroll after a short delay to combat drift
-      setTimeout(() => scrollAsksToBottom(), 50)
-      if (isInitialLoad) {
-        setTimeout(() => scrollAsksToBottom(), 150)
-        isInitialLoad = false
-      }
-    }
-    
-    // Scroll bids to top on symbol/filter change
-    if (newBids.length > 0 && (symbolChanged || filterChanged)) {
-      await nextTick()
       scrollBidsToTop()
+      // Extra scroll after delay to ensure it sticks
+      setTimeout(() => {
+        scrollAsksToBottom()
+        scrollBidsToTop()
+      }, 100)
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 )
 
 onMounted(() => {
@@ -280,33 +267,35 @@ const applyQuickFilter = (btc) => {
       <!-- Asks Container (top half) - FIXED #1 & #3: Always scrollable, defaults to bottom -->
       <div 
         ref="asksContainer" 
-        class="overflow-y-auto overflow-x-hidden border-b border-dark-700/30 min-h-0 flex flex-col-reverse"
+        class="overflow-y-auto overflow-x-hidden border-b border-dark-700/30 min-h-0"
       >
-        <div 
-          v-for="(ask, index) in asks" 
-          :key="'ask-' + ask.price"
-          class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
-          :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
-        >
-          <!-- Background bar (from right) -->
+        <div class="min-h-full flex flex-col justify-end">
           <div 
-            class="absolute inset-y-0 right-0 bg-red-500/10"
-            :style="{ width: getBarWidth(ask.quantity) + '%' }"
-          ></div>
+            v-for="(ask, index) in asks" 
+            :key="'ask-' + ask.price"
+            class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+            :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
+          >
+            <!-- Background bar (from right) -->
+            <div 
+              class="absolute inset-y-0 right-0 bg-red-500/10"
+              :style="{ width: getBarWidth(ask.quantity) + '%' }"
+            ></div>
+            
+            <!-- Content -->
+            <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
+            <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
+            <!-- FIXED #2: Total accumulates from spread (bottom) upward -->
+            <span v-if="!compact" class="relative text-right text-dark-400 truncate">
+              {{ getCumulativeTotal(asks, index, true) }}
+            </span>
+          </div>
           
-          <!-- Content -->
-          <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
-          <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
-          <!-- FIXED #2: Total accumulates from spread (bottom) upward -->
-          <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-            {{ getCumulativeTotal(asks, index, true) }}
-          </span>
-        </div>
-        
-        <!-- Empty asks -->
-        <div v-if="asks.length === 0" class="p-2 text-center text-dark-600 text-xs">
-          <template v-if="store.orderbookMinQtyBTC > 0">No asks ≥ {{ store.orderbookMinQtyBTC }} BTC</template>
-          <template v-else>Loading...</template>
+          <!-- Empty asks -->
+          <div v-if="asks.length === 0" class="p-2 text-center text-dark-600 text-xs">
+            <template v-if="store.orderbookMinQtyBTC > 0">No asks ≥ {{ store.orderbookMinQtyBTC }} BTC</template>
+            <template v-else>Loading...</template>
+          </div>
         </div>
       </div>
       
