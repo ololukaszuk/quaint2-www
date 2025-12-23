@@ -1,0 +1,21 @@
+{
+  "name": "QuAInt′ - BTC Market Analyzer",
+  "short_name": "QuAInt′",
+  "description": "Real-time Bitcoin market analysis with AI-powered signals",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

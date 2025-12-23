@@ -316,16 +316,52 @@ export const useMarketStore = defineStore('market', () => {
   let configLoaded = false
   
   // ============ Notification Functions ============
+  
+  // Detect iOS
+  const isIOS = () => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+  }
+  
+  // Detect if running as PWA
+  const isPWA = () => {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true
+  }
+  
   async function requestNotificationPermission() {
     if (!('Notification' in window)) {
       console.warn('Browser does not support notifications')
+      alert('Your browser does not support notifications.')
       return false
     }
     
-    const permission = await Notification.requestPermission()
-    notificationPermission.value = permission
-    notificationsEnabled.value = permission === 'granted'
-    return permission === 'granted'
+    // Check iOS limitations
+    if (isIOS() && !isPWA()) {
+      alert('iOS requires adding this app to your Home Screen first.\n\n1. Tap the Share button (⬆️)\n2. Select "Add to Home Screen"\n3. Open from Home Screen\n4. Then enable notifications')
+      return false
+    }
+    
+    // Check if already denied
+    if (notificationPermission.value === 'denied') {
+      alert('Notifications are blocked. Please enable them in your browser/system settings:\n\nChrome: Settings > Site Settings > Notifications\niOS: Settings > Safari > [This Site]\nAndroid: Settings > Apps > Browser > Notifications')
+      return false
+    }
+    
+    try {
+      const permission = await Notification.requestPermission()
+      notificationPermission.value = permission
+      notificationsEnabled.value = permission === 'granted'
+      
+      if (permission === 'denied') {
+        alert('Notification permission denied. You can enable it later in browser settings.')
+      }
+      
+      return permission === 'granted'
+    } catch (error) {
+      console.error('Error requesting notification permission:', error)
+      alert('Failed to request notification permission. Please try again.')
+      return false
+    }
   }
   
   function sendNotification(title, body, options = {}) {

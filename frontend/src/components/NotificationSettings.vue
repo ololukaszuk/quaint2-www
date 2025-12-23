@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useMarketStore } from '../store/market'
 
 const props = defineProps({
@@ -8,6 +8,51 @@ const props = defineProps({
 
 const store = useMarketStore()
 const isExpanded = ref(false)
+
+// Detect platform
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+const isAndroid = /Android/.test(navigator.userAgent)
+
+const notificationStatus = computed(() => {
+  if (!('Notification' in window)) {
+    return {
+      canUse: false,
+      message: 'Your browser does not support notifications',
+      color: 'text-red-400'
+    }
+  }
+  
+  if (isIOS && !isPWA) {
+    return {
+      canUse: false,
+      message: 'iOS: Add to Home Screen first (tap Share → Add to Home Screen)',
+      color: 'text-yellow-400'
+    }
+  }
+  
+  if (store.notificationPermission === 'granted') {
+    return {
+      canUse: true,
+      message: 'Notifications enabled',
+      color: 'text-green-400'
+    }
+  }
+  
+  if (store.notificationPermission === 'denied') {
+    return {
+      canUse: false,
+      message: 'Blocked - Enable in browser settings',
+      color: 'text-red-400'
+    }
+  }
+  
+  return {
+    canUse: true,
+    message: 'Click to enable notifications',
+    color: 'text-dark-500'
+  }
+})
 
 const handleNotificationToggle = async () => {
   if (!store.notificationsEnabled) {
@@ -65,18 +110,15 @@ const testNotification = () => {
           <label class="flex items-center justify-between cursor-pointer">
             <div>
               <div class="text-sm text-dark-200">Enable Notifications</div>
-              <div class="text-xs text-dark-500">
-                {{ store.notificationPermission === 'granted' 
-                   ? 'Browser notifications are allowed' 
-                   : store.notificationPermission === 'denied'
-                   ? 'Notifications blocked - check browser settings'
-                   : 'Click to enable browser notifications' }}
+              <div class="text-xs" :class="notificationStatus.color">
+                {{ notificationStatus.message }}
               </div>
             </div>
             <button
               @click.prevent="handleNotificationToggle"
               class="relative w-10 h-6 rounded-full transition-colors"
               :class="store.notificationsEnabled ? 'bg-brand-600' : 'bg-dark-600'"
+              :disabled="!notificationStatus.canUse"
             >
               <span 
                 class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform"
