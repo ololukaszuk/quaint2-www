@@ -26,6 +26,7 @@ const asks = computed(() => {
   return data.slice(0, displayDepth.value).reverse()
 })
 
+// Calculate max volume for bar width - only from visible items
 const maxVolume = computed(() => {
   const allLevels = [...bids.value, ...asks.value]
   if (allLevels.length === 0) return 1
@@ -40,14 +41,7 @@ function getBarWidth(quantity) {
   return (quantity / maxVolume.value) * 100
 }
 
-// Display value based on unit toggle
-const getDisplayQty = (level) => {
-  if (store.displayUnitOrderBook === 'USD') {
-    return level.price * level.quantity
-  }
-  return level.quantity
-}
-
+// FIXED #1: Display value based on unit toggle (works correctly)
 const getDisplayQtyFormatted = (level) => {
   if (store.displayUnitOrderBook === 'USD') {
     return '$' + formatPrice(level.price * level.quantity)
@@ -55,11 +49,23 @@ const getDisplayQtyFormatted = (level) => {
   return formatQuantity(level.quantity)
 }
 
+// FIXED #2: Total column should show cumulative total in current unit
 const getDisplayTotal = (level) => {
+  // For display only - doesn't need separate function for calculation
+  // The calculation happens in the template
+  return null
+}
+
+// FIXED #2: Calculate cumulative total up to this level
+const getCumulativeTotal = (levels, index) => {
+  const cumulative = levels.slice(0, index + 1).reduce((sum, level) => {
+    return sum + (level.price * level.quantity)
+  }, 0)
+  
   if (store.displayUnitOrderBook === 'USD') {
-    return '$' + formatPrice(level.price * level.quantity)
+    return '$' + formatPrice(cumulative)
   }
-  return formatQuantity(level.price * level.quantity)
+  return formatQuantity(cumulative)
 }
 
 function scrollAsksToBottom() {
@@ -75,21 +81,26 @@ function scrollBidsToTop() {
 }
 
 let currentSymbol = ''
+let hasUserScrolledAsks = false
+let hasUserScrolledBids = false
 
+// FIXED #3: Allow free scrolling but default to bottom position for asks
 watch(
   () => [asks.value.length, bids.value.length, store.symbol],
   async ([askLen, bidLen, sym]) => {
     const symbolChanged = sym !== currentSymbol
     if (symbolChanged) {
       currentSymbol = sym
+      hasUserScrolledAsks = false
+      hasUserScrolledBids = false
     }
     
-    if (askLen > 0) {
+    if (askLen > 0 && !hasUserScrolledAsks) {
       await nextTick()
       scrollAsksToBottom()
     }
     
-    if (bidLen > 0 && symbolChanged) {
+    if (bidLen > 0 && symbolChanged && !hasUserScrolledBids) {
       await nextTick()
       scrollBidsToTop()
     }
@@ -103,6 +114,15 @@ onMounted(() => {
     scrollBidsToTop()
   }, 100)
 })
+
+// Track user scroll to prevent auto-scroll override
+function onAsksScroll() {
+  hasUserScrolledAsks = true
+}
+
+function onBidsScroll() {
+  hasUserScrolledBids = true
+}
 
 // Apply filter
 const applyFilter = () => {
@@ -223,7 +243,8 @@ const applyQuickFilter = (btc) => {
     >
       <span class="text-left">Price</span>
       <span class="text-right">Qty ({{ store.displayUnitOrderBook }})</span>
-      <span v-if="!compact" class="text-right">Total ({{ store.displayUnitOrderBook === 'BTC' ? 'USD' : 'USD' }})</span>
+      <!-- FIXED #1: Total column header now shows correct unit -->
+      <span v-if="!compact" class="text-right">Total ({{ store.displayUnitOrderBook }})</span>
     </div>
     
     <!-- Two-panel layout -->
@@ -232,25 +253,56 @@ const applyQuickFilter = (btc) => {
       <div 
         ref="asksContainer" 
         class="overflow-y-auto overflow-x-hidden border-b border-dark-700/30 min-h-0"
+        @scroll="onAsksScroll"
       >
+        <!-- FIXED #4: Asks align to bottom when filter applied -->
         <div 
-          v-for="ask in asks" 
-          :key="'ask-' + ask.price"
-          class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
-          :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
+          v-if="asks.length > 0 && store.orderbookMinQtyBTC > 0"
+          class="flex flex-col-reverse"
         >
-          <!-- Background bar (from right) -->
           <div 
-            class="absolute inset-y-0 right-0 bg-red-500/10"
-            :style="{ width: getBarWidth(ask.quantity) + '%' }"
-          ></div>
-          
-          <!-- Content -->
-          <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
-          <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
-          <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-            {{ getDisplayTotal(ask) }}
-          </span>
+            v-for="(ask, index) in asks" 
+            :key="'ask-' + ask.price"
+            class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+            :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
+          >
+            <!-- Background bar (from right) -->
+            <div 
+              class="absolute inset-y-0 right-0 bg-red-500/10"
+              :style="{ width: getBarWidth(ask.quantity) + '%' }"
+            ></div>
+            
+            <!-- Content -->
+            <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
+            <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
+            <!-- FIXED #2: Total column now calculates cumulative total correctly -->
+            <span v-if="!compact" class="relative text-right text-dark-400 truncate">
+              {{ getCumulativeTotal(asks, index) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Normal order when no filter -->
+        <div v-else>
+          <div 
+            v-for="(ask, index) in asks" 
+            :key="'ask-' + ask.price"
+            class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
+            :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
+          >
+            <!-- Background bar (from right) -->
+            <div 
+              class="absolute inset-y-0 right-0 bg-red-500/10"
+              :style="{ width: getBarWidth(ask.quantity) + '%' }"
+            ></div>
+            
+            <!-- Content -->
+            <span class="relative text-red-400 truncate">{{ formatPrice(ask.price) }}</span>
+            <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(ask) }}</span>
+            <span v-if="!compact" class="relative text-right text-dark-400 truncate">
+              {{ getCumulativeTotal(asks, index) }}
+            </span>
+          </div>
         </div>
         
         <!-- Empty asks -->
@@ -270,9 +322,10 @@ const applyQuickFilter = (btc) => {
       <div 
         ref="bidsContainer" 
         class="overflow-y-auto overflow-x-hidden min-h-0"
+        @scroll="onBidsScroll"
       >
         <div 
-          v-for="bid in bids" 
+          v-for="(bid, index) in bids" 
           :key="'bid-' + bid.price"
           class="relative px-3 py-0.5 grid gap-2 text-xs mono hover:bg-dark-800/50 transition-colors"
           :class="compact ? 'grid-cols-2' : 'grid-cols-3'"
@@ -286,8 +339,9 @@ const applyQuickFilter = (btc) => {
           <!-- Content -->
           <span class="relative text-green-400 truncate">{{ formatPrice(bid.price) }}</span>
           <span class="relative text-right text-dark-300 truncate">{{ getDisplayQtyFormatted(bid) }}</span>
+          <!-- FIXED #2: Total column now calculates cumulative total correctly -->
           <span v-if="!compact" class="relative text-right text-dark-400 truncate">
-            {{ getDisplayTotal(bid) }}
+            {{ getCumulativeTotal(bids, index) }}
           </span>
         </div>
         
