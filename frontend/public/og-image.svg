@@ -1,0 +1,102 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#020617"/>
+      <stop offset="50%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#020617"/>
+    </linearGradient>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
+    </linearGradient>
+    <linearGradient id="chartGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0.4"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+  
+  <!-- Grid pattern -->
+  <g opacity="0.1" stroke="#64748b" stroke-width="1">
+    <line x1="0" y1="157" x2="1200" y2="157"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="472" x2="1200" y2="472"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+  </g>
+  
+  <!-- Stylized chart area -->
+  <path d="M 0 480 L 100 420 L 200 450 L 300 380 L 400 400 L 500 320 L 600 350 L 700 280 L 800 300 L 900 220 L 1000 250 L 1100 180 L 1200 200 L 1200 630 L 0 630 Z" 
+        fill="url(#chartGrad)" opacity="0.5"/>
+  
+  <!-- Chart line -->
+  <path d="M 0 480 L 100 420 L 200 450 L 300 380 L 400 400 L 500 320 L 600 350 L 700 280 L 800 300 L 900 220 L 1000 250 L 1100 180 L 1200 200" 
+        fill="none" stroke="url(#brandGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Candlesticks hint -->
+  <g opacity="0.6">
+    <!-- Bullish candle -->
+    <rect x="760" y="270" width="20" height="40" fill="#22c55e" rx="2"/>
+    <line x1="770" y1="260" x2="770" y2="270" stroke="#22c55e" stroke-width="2"/>
+    <line x1="770" y1="310" x2="770" y2="325" stroke="#22c55e" stroke-width="2"/>
+    
+    <!-- Bearish candle -->
+    <rect x="820" y="290" width="20" height="35" fill="#ef4444" rx="2"/>
+    <line x1="830" y1="280" x2="830" y2="290" stroke="#ef4444" stroke-width="2"/>
+    <line x1="830" y1="325" x2="830" y2="340" stroke="#ef4444" stroke-width="2"/>
+    
+    <!-- Bullish candle -->
+    <rect x="880" y="250" width="20" height="50" fill="#22c55e" rx="2"/>
+    <line x1="890" y1="235" x2="890" y2="250" stroke="#22c55e" stroke-width="2"/>
+    <line x1="890" y1="300" x2="890" y2="320" stroke="#22c55e" stroke-width="2"/>
+  </g>
+  
+  <!-- Logo icon -->
+  <g transform="translate(100, 120)">
+    <rect width="80" height="80" rx="16" fill="url(#brandGrad)" opacity="0.9"/>
+    <path d="M 20 50 L 35 35 L 45 42 L 60 28" 
+          stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="60" cy="28" r="6" fill="white"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="200" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#f8fafc">
+    QuAInt<tspan fill="#22c55e">²</tspan>
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="400" fill="#94a3b8">
+    Real-Time Bitcoin Market Analysis
+  </text>
+  
+  <!-- Features -->
+  <text x="100" y="290" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#64748b">
+    <tspan fill="#22c55e">✓</tspan> Live Binance Data  
+    <tspan fill="#22c55e" dx="40">✓</tspan> AI Trading Signals  
+    <tspan fill="#22c55e" dx="40">✓</tspan> Smart Money Concepts
+  </text>
+  
+  <!-- Price display mockup -->
+  <g transform="translate(100, 340)">
+    <rect width="300" height="100" rx="12" fill="#1e293b" opacity="0.8"/>
+    <text x="20" y="35" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">BTCUSDT</text>
+    <text x="20" y="75" font-family="'Courier New', monospace" font-size="36" font-weight="700" fill="#f8fafc">$97,432.50</text>
+    <text x="230" y="75" font-family="system-ui, sans-serif" font-size="18" fill="#22c55e">+2.34%</text>
+  </g>
+  
+  <!-- Signal mockup -->
+  <g transform="translate(430, 340)">
+    <rect width="200" height="100" rx="12" fill="#1e293b" opacity="0.8"/>
+    <text x="20" y="35" font-family="system-ui, sans-serif" font-size="16" fill="#64748b">Signal</text>
+    <rect x="20" y="50" width="100" height="32" rx="6" fill="#22c55e" opacity="0.2"/>
+    <text x="35" y="72" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#22c55e">WEAK_BUY</text>
+  </g>
+  
+  <!-- Domain -->
+  <text x="1100" y="600" font-family="system-ui, sans-serif" font-size="20" fill="#475569" text-anchor="end">
+    quaint2.example.com
+  </text>
+</svg>
