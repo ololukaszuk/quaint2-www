@@ -150,15 +150,6 @@ const changeStatsHours = (hours) => {
             </div>
           </div>
         </div>
-        
-        <!-- Result (if completed) -->
-        <div v-if="latest.was_prediction_correct !== null" class="mt-3 p-2 rounded text-center"
-          :class="latest.was_prediction_correct ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
-          {{ latest.was_prediction_correct ? '✅ Correct!' : '❌ Incorrect' }}
-          <span v-if="latest.interval_close_price" class="ml-2 font-mono">
-            Close: ${{ formatPrice(latest.interval_close_price) }}
-          </span>
-        </div>
       </div>
       
       <!-- Trading Recommendation -->
