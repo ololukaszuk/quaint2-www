@@ -82,6 +82,11 @@ export const useMarketStore = defineStore('market', () => {
   const marketSignals = shallowRef([])
   const latestSignal = ref(null)
   
+  // ML 15m Predictions
+  const mlPredictionLatest = ref(null)
+  const mlPredictionStats = ref(null)
+  const mlPredictionIntervals = shallowRef([])
+  
   // Track signal changes for notifications
   const previousSignalType = ref(null)
   const previousLLMAnalysisId = ref(null)
@@ -206,6 +211,7 @@ export const useMarketStore = defineStore('market', () => {
   let marketAnalysisPollTimer = null
   let llmAnalysisPollTimer = null
   let marketSignalsPollTimer = null
+  let mlPredictionsPollTimer = null
   
   // 24h ticker polling
   let ticker24hPollTimer = null
@@ -793,6 +799,7 @@ export const useMarketStore = defineStore('market', () => {
     fetchMarketAnalysis()
     fetchLLMAnalysis()
     fetchMarketSignals()
+    fetchMLPredictions()
     
     // Set up polling intervals
     const intervals = config.value.poll_intervals
@@ -811,6 +818,12 @@ export const useMarketStore = defineStore('market', () => {
       fetchMarketSignals, 
       intervals.market_signals
     )
+    
+    // Poll ML predictions every 15 seconds
+    mlPredictionsPollTimer = setInterval(
+      fetchMLPredictions,
+      15000
+    )
   }
   
   function stopMLPolling() {
@@ -825,6 +838,10 @@ export const useMarketStore = defineStore('market', () => {
     if (marketSignalsPollTimer) {
       clearInterval(marketSignalsPollTimer)
       marketSignalsPollTimer = null
+    }
+    if (mlPredictionsPollTimer) {
+      clearInterval(mlPredictionsPollTimer)
+      mlPredictionsPollTimer = null
     }
   }
   
@@ -897,6 +914,56 @@ export const useMarketStore = defineStore('market', () => {
       }
     } catch (e) {
       console.error('Failed to fetch market signals:', e)
+    }
+  }
+  
+  async function fetchMLPredictions() {
+    await Promise.all([
+      fetchMLPredictionLatest(),
+      fetchMLPredictionStats(24),
+      fetchMLPredictionIntervals()
+    ])
+  }
+  
+  async function fetchMLPredictionLatest() {
+    try {
+      const response = await fetch('/api/ml/predictions/latest')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          mlPredictionLatest.value = data.data
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch ML prediction latest:', e)
+    }
+  }
+  
+  async function fetchMLPredictionStats(hours = 24) {
+    try {
+      const response = await fetch(`/api/ml/predictions/stats?hours=${hours}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          mlPredictionStats.value = data.data
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch ML prediction stats:', e)
+    }
+  }
+  
+  async function fetchMLPredictionIntervals() {
+    try {
+      const response = await fetch('/api/ml/predictions/intervals?limit=20')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          mlPredictionIntervals.value = data.data
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch ML prediction intervals:', e)
     }
   }
   
@@ -1188,6 +1255,9 @@ export const useMarketStore = defineStore('market', () => {
     llmAnalysis,
     marketSignals,
     latestSignal,
+    mlPredictionLatest,
+    mlPredictionStats,
+    mlPredictionIntervals,
     
     // UI state
     showOrderBook,
@@ -1252,5 +1322,6 @@ export const useMarketStore = defineStore('market', () => {
     refreshMLData,
     sendNotification,
     playNotificationSound,
+    fetchMLPredictionStats,
   }
 })

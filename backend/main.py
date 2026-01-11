@@ -252,6 +252,106 @@ async def get_data_quality(
         raise HTTPException(status_code=503, detail="ML API unavailable")
 
 
+@app.get("/api/ml/predictions")
+async def get_predictions(
+    limit: int = Query(default=100, ge=1, le=1000),
+    completed: bool = Query(default=False),
+    min_certainty: Optional[float] = Query(default=None, ge=0, le=1)
+):
+    """Proxy endpoint for ML predictions."""
+    if not ML_API_KEY:
+        raise HTTPException(status_code=503, detail="ML API not configured")
+    
+    try:
+        async with get_ml_client() as client:
+            params = {"limit": limit, "completed": completed}
+            if min_certainty is not None:
+                params["min_certainty"] = min_certainty
+            
+            response = await client.get("/ml/predictions", params=params)
+            
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid ML API key")
+            
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"ML API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to fetch predictions: {e}")
+        raise HTTPException(status_code=503, detail="ML API unavailable")
+
+
+@app.get("/api/ml/predictions/latest")
+async def get_predictions_latest():
+    """Proxy endpoint for latest ML prediction."""
+    if not ML_API_KEY:
+        raise HTTPException(status_code=503, detail="ML API not configured")
+    
+    try:
+        async with get_ml_client() as client:
+            response = await client.get("/ml/predictions/latest")
+            
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid ML API key")
+            
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"ML API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to fetch latest prediction: {e}")
+        raise HTTPException(status_code=503, detail="ML API unavailable")
+
+
+@app.get("/api/ml/predictions/stats")
+async def get_predictions_stats(hours: int = Query(default=24, ge=1, le=168)):
+    """Proxy endpoint for ML prediction statistics."""
+    if not ML_API_KEY:
+        raise HTTPException(status_code=503, detail="ML API not configured")
+    
+    try:
+        async with get_ml_client() as client:
+            response = await client.get("/ml/predictions/stats", params={"hours": hours})
+            
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid ML API key")
+            
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"ML API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to fetch prediction stats: {e}")
+        raise HTTPException(status_code=503, detail="ML API unavailable")
+
+
+@app.get("/api/ml/predictions/intervals")
+async def get_predictions_intervals(limit: int = Query(default=20, ge=1, le=100)):
+    """Proxy endpoint for ML prediction intervals."""
+    if not ML_API_KEY:
+        raise HTTPException(status_code=503, detail="ML API not configured")
+    
+    try:
+        async with get_ml_client() as client:
+            response = await client.get("/ml/predictions/intervals", params={"limit": limit})
+            
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid ML API key")
+            
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"ML API error: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to fetch prediction intervals: {e}")
+        raise HTTPException(status_code=503, detail="ML API unavailable")
+
+
 # Serve static files
 @app.get("/")
 async def serve_index():

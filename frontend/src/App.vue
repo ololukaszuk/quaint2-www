@@ -10,6 +10,7 @@ import StatsBar from './components/StatsBar.vue'
 import SignalPanel from './components/SignalPanel.vue'
 import AnalysisPanel from './components/AnalysisPanel.vue'
 import LLMPanel from './components/LLMPanel.vue'
+import MLPredictionsPanel from './components/MLPredictionsPanel.vue'
 import NotificationSettings from './components/NotificationSettings.vue'
 
 const store = useMarketStore()
@@ -197,6 +198,32 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
                 class="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500"
               ></div>
             </button>
+            <button
+              @click="store.setActiveTab('ml15')"
+              class="flex-1 px-4 py-3 text-sm font-medium transition-colors relative"
+              :class="store.activeTab === 'ml15' 
+                ? 'text-brand-400' 
+                : 'text-dark-400 hover:text-dark-200'"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <span>🧠</span>
+                <span>15m</span>
+                <span 
+                  v-if="store.mlPredictionLatest"
+                  class="px-1.5 py-0.5 text-xs rounded"
+                  :class="{
+                    'bg-green-500/20 text-green-400': store.mlPredictionLatest.predicted_direction === 1,
+                    'bg-red-500/20 text-red-400': store.mlPredictionLatest.predicted_direction === -1,
+                  }"
+                >
+                  {{ store.mlPredictionLatest.predicted_direction === 1 ? 'UP' : 'DN' }}
+                </span>
+              </span>
+              <div 
+                v-if="store.activeTab === 'ml15'"
+                class="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500"
+              ></div>
+            </button>
           </div>
           
           <!-- Tab Content -->
@@ -204,6 +231,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
             <AnalysisPanel v-if="store.activeTab === 'analysis'" />
             <SignalPanel v-if="store.activeTab === 'signals'" />
             <LLMPanel v-if="store.activeTab === 'llm'" />
+            <MLPredictionsPanel v-if="store.activeTab === 'ml15'" />
           </div>
           
           <!-- Notification Settings -->
@@ -346,6 +374,15 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               >
                 🤖 AI Prediction
               </button>
+              <button
+                @click="store.setActiveTab('ml15')"
+                class="px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors"
+                :class="store.activeTab === 'ml15' 
+                  ? 'bg-brand-600 text-white' 
+                  : 'bg-dark-800 text-dark-300'"
+              >
+                🧠 15m ML
+              </button>
             </div>
             
             <!-- Content -->
@@ -353,6 +390,7 @@ const volume24hSuffix = computed(() => store.displayUnitVolume === 'BTC' ? ' BTC
               <SignalPanel v-if="store.activeTab === 'signals'" :mobile="true" />
               <AnalysisPanel v-if="store.activeTab === 'analysis'" :mobile="true" />
               <LLMPanel v-if="store.activeTab === 'llm'" :mobile="true" />
+              <MLPredictionsPanel v-if="store.activeTab === 'ml15'" :mobile="true" />
             </div>
             
             <!-- Notification Settings (Mobile) -->
